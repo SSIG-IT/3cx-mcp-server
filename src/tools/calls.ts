@@ -30,14 +30,6 @@ type RecentCallQuery = {
   timezone: string;
 };
 
-type ResolvedTimeFilter =
-  | { kind: "all_recent" }
-  | { kind: "last_24_hours"; start: Date }
-  | { kind: "local_date"; localDate: string; timezone: string };
-
-const MAX_AUTO_SCAN_ROWS = 5000;
-const MIN_TIME_WINDOW_SCAN_ROWS = 2000;
-
 function buildCallHistoryQuery(params: Record<string, string | number | undefined>): string {
   const query = new URLSearchParams();
 
@@ -73,33 +65,6 @@ function getLocalDateString(date: Date, timezone: string): string {
   }
 
   return `${year}-${month}-${day}`;
-}
-
-function resolveTimeFilter(query: RecentCallQuery): ResolvedTimeFilter {
-  if (query.date) {
-    return {
-      kind: "local_date",
-      localDate: query.date,
-      timezone: query.timezone,
-    };
-  }
-
-  if (query.scope === "all_recent") {
-    return { kind: "all_recent" };
-  }
-
-  if (query.scope === "last_24_hours") {
-    return {
-      kind: "last_24_hours",
-      start: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    };
-  }
-
-  return {
-    kind: "local_date",
-    localDate: getLocalDateString(new Date(), query.timezone),
-    timezone: query.timezone,
-  };
 }
 
 function parseTimestamp(value?: string): Date | null {
@@ -138,30 +103,34 @@ function matchesQueue(entry: CallHistoryEntry, queue?: string): boolean {
   return matchesExactNumber(entry.DstCallerNumber, queue) || matchesText(entry.DstDisplayName, queue);
 }
 
-function matchesScope(entry: CallHistoryEntry, filter: ResolvedTimeFilter): boolean {
-  if (filter.kind === "all_recent") return true;
-  const timestamp = parseTimestamp(entry.SegmentStartTime);
-  if (timestamp === null) return false;
-
-  if (filter.kind === "last_24_hours") {
-    return timestamp >= filter.start;
+/**
+ * Build a server-side OData $filter for CallHistoryView.
+ *
+ * 3CX XAPI ignores $orderby on CallHistoryView — $skip/$top always operate
+ * on the native (ascending / oldest-first) order. Without a $filter the first
+ * page therefore returns the *oldest* records in the database, not the newest.
+ *
+ * The date() function syntax is the most reliable across 3CX V20 instances:
+ *   $filter=date(SegmentStartTime) ge 2026-03-18
+ */
+function buildDateFilter(scope: CallScope, date: string | undefined, timezone: string): string | undefined {
+  if (date) {
+    return `date(SegmentStartTime) eq ${date}`;
   }
 
-  return getLocalDateString(timestamp, filter.timezone) === filter.localDate;
-}
-
-function shouldStopScanning(entry: CallHistoryEntry, filter: ResolvedTimeFilter): boolean {
-  if (filter.kind === "all_recent") return false;
-
-  const timestamp = parseTimestamp(entry.SegmentStartTime);
-  if (timestamp === null) return false;
-
-  if (filter.kind === "last_24_hours") {
-    return timestamp < filter.start;
+  if (scope === "today") {
+    const today = getLocalDateString(new Date(), timezone);
+    return `date(SegmentStartTime) eq ${today}`;
   }
 
-  const entryDate = getLocalDateString(timestamp, filter.timezone);
-  return entryDate < filter.localDate;
+  if (scope === "last_24_hours") {
+    const yesterday = getLocalDateString(new Date(Date.now() - 24 * 60 * 60 * 1000), timezone);
+    return `date(SegmentStartTime) ge ${yesterday}`;
+  }
+
+  // all_recent: last 7 days as a reasonable default
+  const weekAgo = getLocalDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), timezone);
+  return `date(SegmentStartTime) ge ${weekAgo}`;
 }
 
 async function getCallHistoryPage(
@@ -169,13 +138,13 @@ async function getCallHistoryPage(
   params: {
     top: number;
     skip?: number;
-    orderby?: string;
+    filter?: string;
   },
 ): Promise<CallHistoryEntry[]> {
   const query = buildCallHistoryQuery({
     $top: params.top,
     $skip: params.skip,
-    $orderby: params.orderby ?? "SegmentStartTime desc",
+    $filter: params.filter,
   });
   const result = (await xapi.get(`/CallHistoryView${query}`)) as CallHistoryResponse;
   return result.value ?? [];
@@ -188,35 +157,29 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
     scanLimit: number;
     scanned: number;
     returned: number;
-    autoExpandedScan: boolean;
-    windowFullyScanned: boolean;
-    filteredLocally: true;
     timezone: string;
+    serverFilter: string | undefined;
     notes: string[];
   };
   value: CallHistoryEntry[];
 }> {
-  const timeFilter = resolveTimeFilter(query);
+  const dateFilter = buildDateFilter(query.scope, query.date, query.timezone);
   const collected: CallHistoryEntry[] = [];
   let scanned = 0;
   let skip = 0;
-  let stopScanning = false;
-  let reachedEndOfHistory = false;
-  const effectiveScanLimit = timeFilter.kind === "all_recent"
-    ? query.scanLimit
-    : Math.min(MAX_AUTO_SCAN_ROWS, Math.max(query.scanLimit, MIN_TIME_WINDOW_SCAN_ROWS));
+  let reachedEnd = false;
 
-  while (scanned < effectiveScanLimit && collected.length < query.top && !stopScanning) {
-    const remaining = effectiveScanLimit - scanned;
+  while (scanned < query.scanLimit && !reachedEnd) {
+    const remaining = query.scanLimit - scanned;
     const pageSize = Math.min(100, remaining);
     const page = await getCallHistoryPage(xapi, {
       top: pageSize,
       skip,
-      orderby: "SegmentStartTime desc",
+      filter: dateFilter,
     });
 
     if (page.length === 0) {
-      reachedEndOfHistory = true;
+      reachedEnd = true;
       break;
     }
 
@@ -224,14 +187,6 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
     skip += page.length;
 
     for (const entry of page) {
-      if (!matchesScope(entry, timeFilter)) {
-        if (shouldStopScanning(entry, timeFilter)) {
-          stopScanning = true;
-          break;
-        }
-        continue;
-      }
-
       if (query.missedOnly && entry.CallAnswered !== false) {
         continue;
       }
@@ -245,36 +200,39 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
       }
 
       collected.push(entry);
-      if (collected.length >= query.top) {
-        break;
-      }
     }
   }
+
+  // Sort client-side newest-first (3CX ignores $orderby on CallHistoryView)
+  collected.sort((a, b) => {
+    const ta = parseTimestamp(a.SegmentStartTime)?.getTime() ?? 0;
+    const tb = parseTimestamp(b.SegmentStartTime)?.getTime() ?? 0;
+    return tb - ta;
+  });
+
+  // Apply top limit after sorting
+  const result = collected.slice(0, query.top);
+  const effectiveDate = query.date
+    ?? (query.scope === "today" ? getLocalDateString(new Date(), query.timezone) : undefined);
 
   return {
     meta: {
       scope: query.scope,
-      date: timeFilter.kind === "local_date" ? timeFilter.localDate : undefined,
+      date: effectiveDate,
       scanLimit: query.scanLimit,
       scanned,
-      returned: collected.length,
-      autoExpandedScan: effectiveScanLimit > query.scanLimit,
-      windowFullyScanned: timeFilter.kind === "all_recent" ? reachedEndOfHistory : stopScanning || reachedEndOfHistory,
-      filteredLocally: true,
+      returned: result.length,
       timezone: query.timezone,
+      serverFilter: dateFilter,
       notes: [
-        "This tool always scans newest-first and applies scope filtering locally.",
-        "3CX CallHistoryView date filters can fail with HTTP 500 on some systems, so no server-side date filter is used.",
-        "For scope='today', the effective day boundary comes from the selected timezone, not necessarily the host timezone.",
-        ...(effectiveScanLimit > query.scanLimit
-          ? [`The scan was automatically expanded from ${query.scanLimit} to ${effectiveScanLimit} rows to cover the requested time window more reliably.`]
-          : []),
-        ...((timeFilter.kind !== "all_recent" && !(stopScanning || reachedEndOfHistory))
-          ? ["The requested time window may not be fully covered yet. Increase scanLimit if you need exhaustive results on very busy systems."]
-          : []),
+        "Server-side $filter narrows the date range; results are sorted client-side (newest first).",
+        "3CX XAPI ignores $orderby on CallHistoryView, so $filter is required to get recent data.",
+        ...(reachedEnd
+          ? ["All matching records in the time window were retrieved."]
+          : [`Scan limit (${query.scanLimit}) reached. Increase scanLimit for exhaustive results on busy systems.`]),
       ],
     },
-    value: collected,
+    value: result,
   };
 }
 
@@ -304,14 +262,14 @@ export function registerCallTools(server: McpServer, xapi: XapiClient, config: C
     "get_call_history",
     "Use this for ANY question about past calls: 'show today's calls', 'missed calls today', 'recent calls for extension 101', 'calls to queue 802 yesterday'. Returns newest calls first. Each record: SegmentStartTime, SrcDisplayName, SrcCallerNumber, DstDisplayName, DstCallerNumber, CallAnswered (true/false), CallTime. Set missedOnly=true for missed/unanswered calls. Handles timezone-aware 'today' filtering automatically. Requires System Owner role.",
     {
-      scope: z.enum(["today", "last_24_hours", "all_recent"]).optional().default("today").describe("Time window: 'today' (default), 'last_24_hours', or 'all_recent'"),
+      scope: z.enum(["today", "last_24_hours", "all_recent"]).optional().default("today").describe("Time window: 'today' (default, server-filtered), 'last_24_hours' (server-filtered), or 'all_recent' (last 7 days)"),
       missedOnly: z.boolean().optional().default(false).describe("Set true for missed/unanswered calls only"),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Explicit date in YYYY-MM-DD format, e.g. '2026-03-17' for yesterday"),
       timezone: z.string().optional().describe(`IANA timezone, e.g. 'Europe/Berlin'. Defaults to ${defaultTimezone}.`),
-      top: z.number().optional().default(20).describe("Max results to return"),
+      top: z.number().optional().default(20).describe("Max results to return (applied after sorting)"),
       extension: z.string().optional().describe("Filter by extension number on source or destination, e.g. '101'"),
       queue: z.string().optional().describe("Filter by queue number or name, e.g. '802' or 'Support'"),
-      scanLimit: z.number().optional().default(250).describe("How many rows to scan. Increase for busy systems."),
+      scanLimit: z.number().optional().default(500).describe("How many rows to fetch from the server. Increase for busy systems."),
     },
     async ({ scope, missedOnly, date, timezone, top, extension, queue, scanLimit }) => {
       try {
