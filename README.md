@@ -96,11 +96,10 @@ This launches the [MCP Inspector](https://github.com/modelcontextprotocol/inspec
 |------|-------------|
 | `get_system_status` | Retrieves 3CX system status (version, license, uptime) |
 | `list_users` | Lists all users with optional OData filter and paging |
-| `get_user` | Retrieves a single user by ID |
+| `get_user` | Retrieves a single user by numeric ID or extension number |
 | `list_departments` | Lists all departments/groups with optional filter |
 | `list_trunks` | Lists all configured SIP trunks |
 | `get_active_calls` | Retrieves currently active calls |
-| `get_call_logs` | Retrieves call log data (CDR) with optional filter |
 
 ## Environment Variables
 
