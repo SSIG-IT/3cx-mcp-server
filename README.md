@@ -105,6 +105,12 @@ This launches the [MCP Inspector](https://github.com/modelcontextprotocol/inspec
 | `list_trunks` | Lists all configured SIP trunks |
 | `get_active_calls` | Retrieves currently active calls |
 | `get_call_logs` | Retrieves call history (CDR) with optional filter (requires System Owner role) |
+| `list_queues` | Lists all call queues with optional filter |
+| `list_ring_groups` | Lists all ring groups with optional filter |
+| `list_contacts` | Lists phonebook contacts with optional filter and paging |
+| `search_contacts` | Searches phonebook by name, company, or phone number |
+| `get_extension_status` | Retrieves extension status (registered, profile, queue status) |
+| `get_event_logs` | Retrieves system event logs with optional filter |
 
 ## Environment Variables
 

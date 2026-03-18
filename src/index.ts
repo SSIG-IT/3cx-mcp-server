@@ -10,6 +10,10 @@ import { registerUserTools } from "./tools/users.js";
 import { registerDepartmentTools } from "./tools/departments.js";
 import { registerTrunkTools } from "./tools/trunks.js";
 import { registerCallTools } from "./tools/calls.js";
+import { registerQueueTools } from "./tools/queues.js";
+import { registerContactTools } from "./tools/contacts.js";
+import { registerExtensionTools } from "./tools/extensions.js";
+import { registerLogTools } from "./tools/logs.js";
 
 const server = new McpServer({
   name: "3cx-mcp-server",
@@ -25,6 +29,10 @@ registerUserTools(server, xapi);
 registerDepartmentTools(server, xapi);
 registerTrunkTools(server, xapi);
 registerCallTools(server, xapi);
+registerQueueTools(server, xapi);
+registerContactTools(server, xapi);
+registerExtensionTools(server, xapi);
+registerLogTools(server, xapi);
 
 // Start server
 async function main() {
