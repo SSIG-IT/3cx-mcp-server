@@ -33,25 +33,22 @@ export function registerUserTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "get_user",
-    "Retrieves a single 3CX user by numeric ID or extension number (e.g. '111').",
+    "Retrieves a single 3CX user by extension number (e.g. '101').",
     {
-      id: z.number().optional().describe("The numeric user ID (e.g. 26)"),
-      extension: z.string().optional().describe("The extension number (e.g. '111')"),
+      extension: z.string().describe("The extension number (e.g. '101')"),
     },
-    async ({ id, extension }) => {
+    async ({ extension }) => {
       try {
-        if (!id && !extension) {
+        const result = await xapi.get(`/Users?$filter=Number eq '${extension}'`) as { value?: unknown[] };
+        const user = result.value?.[0];
+        if (!user) {
           return {
-            content: [{ type: "text", text: "Error: Provide either 'id' (numeric) or 'extension' (string)." }],
+            content: [{ type: "text", text: `No user found with extension '${extension}'.` }],
             isError: true,
           };
         }
-        const path = id !== undefined
-          ? `/Users(${id})`
-          : `/Users(Number='${extension}')`;
-        const result = await xapi.get(path);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: JSON.stringify(user, null, 2) }],
         };
       } catch (err) {
         return {
