@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.ssig-it/3cx-mcp-server",
+  "description": "MCP Server for 3CX Phone System (V20+) — Manage users, extensions, queues, calls, contacts and more. 21 tools including CRUD operations.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/SSIG-IT/3cx-mcp-server",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registry_name": "npm",
+      "name": "@ssig-it/3cx-mcp-server",
+      "version": "0.1.0"
+    }
+  ]
+}

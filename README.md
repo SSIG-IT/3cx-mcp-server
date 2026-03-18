@@ -1,5 +1,10 @@
 # 3CX MCP Server
 
+[![MCP Server](https://img.shields.io/badge/MCP-Server-blue)](https://modelcontextprotocol.io)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green)](https://nodejs.org)
+[![3CX V20+](https://img.shields.io/badge/3CX-V20+-orange)](https://www.3cx.com)
+
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that connects Claude to a **3CX Phone System** (V20+). Manage users, monitor calls, search contacts, configure forwarding — directly from Claude Desktop, Claude Code, or any MCP-compatible client.
 
 ## Features
@@ -243,6 +248,44 @@ MIT — see [LICENSE](LICENSE)
 ## Contributing
 
 Issues and pull requests are welcome at [github.com/SSIG-IT/3cx-mcp-server](https://github.com/SSIG-IT/3cx-mcp-server).
+
+## Publishing & Distribution
+
+This server can be listed on the following MCP directories:
+
+### Official MCP Registry
+
+The [`server.json`](server.json) file contains the registry metadata. To publish:
+
+```bash
+# Install the MCP publisher CLI (requires Go)
+go install github.com/modelcontextprotocol/registry/cmd/mcp-publisher@latest
+
+# Login with GitHub
+mcp-publisher login github
+
+# Publish
+mcp-publisher publish server.json
+```
+
+> **Note:** The npm package `@ssig-it/3cx-mcp-server` referenced in `server.json` must be published to npm first (`npm publish`) before registry submission.
+
+### Smithery Marketplace
+
+The [`smithery.yaml`](smithery.yaml) file contains the Smithery configuration. To list:
+
+1. Go to [smithery.ai/new](https://smithery.ai/new)
+2. Connect your GitHub repository
+3. The server is automatically listed using the `smithery.yaml` config
+
+### PulseMCP
+
+[PulseMCP](https://pulsemcp.com) automatically indexes servers from the MCP Registry and Smithery. No manual action needed.
+
+### GitHub Topics
+
+Set the following topics on the GitHub repository for discoverability:
+`mcp`, `mcp-server`, `3cx`, `pbx`, `telephony`, `voip`, `claude`, `model-context-protocol`
 
 ---
 
