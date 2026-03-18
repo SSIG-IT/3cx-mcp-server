@@ -1,9 +1,13 @@
-# 3CX MCP Server
+<p align="center">
+  <img src="assets/header.svg" alt="3CX MCP Server" width="800">
+</p>
 
-[![MCP Server](https://img.shields.io/badge/MCP-Server-blue)](https://modelcontextprotocol.io)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green)](https://nodejs.org)
-[![3CX V20+](https://img.shields.io/badge/3CX-V20+-orange)](https://www.3cx.com)
+<p align="center">
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Server-blue" alt="MCP Server"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-20+-green" alt="Node.js"></a>
+  <a href="https://www.3cx.com"><img src="https://img.shields.io/badge/3CX-V20+-orange" alt="3CX V20+"></a>
+</p>
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that connects Claude to a **3CX Phone System** (V20+). Manage users, monitor calls, search contacts, configure forwarding — directly from Claude Desktop, Claude Code, or any MCP-compatible client.
 
@@ -15,6 +19,10 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that c
 - **Queue & Ring Group Status** — monitor call queues and ring groups
 - **Forwarding Control** — view and change forwarding profiles per extension
 - **System Administration** — system status, trunks, departments, event logs
+
+> **Quick Start:** `git clone` → `npm install && npm run build` → configure `.env` → add to Claude Desktop config → done.
+
+**Contents:** [Prerequisites](#prerequisites) · [3CX API Setup](#3cx-api-setup) · [Installation](#installation) · [Configuration](#configuration) · [Usage](#usage) · [Tools](#available-tools-21) · [Troubleshooting](#troubleshooting) · [Deutsch](#deutsch--kurzanleitung)
 
 ## Prerequisites
 
