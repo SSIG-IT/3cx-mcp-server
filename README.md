@@ -19,19 +19,27 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that c
 
 ## 3CX API Setup
 
-### Step 1: Create a Service Principal
+### Step 1: Open the Admin Console
 
-1. Open the **3CX Admin Console**
-2. Navigate to **Integrations > API > Add**
-3. Enable **XAPI** access
-4. Set the role to **System Owner** (Systemeigentümer)
-5. Copy the **Client ID** (numeric extension number) and **Client Secret**
+Log in to your 3CX Web Client as **System Owner**. Click the **gear icon** (bottom left) to enter the Admin area.
 
-> **Warning:** The role **must** be **System Owner**, not System Administrator. With System Administrator, most endpoints work, but `CallHistoryView`, `ChatHistoryView`, `Recordings`, and `ScheduledReports` will return **403 Forbidden**.
+### Step 2: Create a Service Principal
 
-### Step 2: Store API credentials securely
+1. Navigate to **Integrations > API** (German: Integrationen > API)
+2. Click **Add** (Hinzufügen)
+3. Enter a **Client ID**
 
-Keep the Client ID and Client Secret in a safe place (e.g. a password manager). You will need them for the `.env` file and for any MCP client configuration.
+> **The Client ID must be a numeric extension number** (e.g. `900`, `950`). 3CX uses this as a route point internally. Text values like `mcp-server` will be rejected with "Format invalid". Choose an unused number.
+
+4. Check the **XAPI** access checkbox
+5. Set **Department** to your main department (usually DEFAULT)
+6. Set the **Role** to **System Owner** (Systemeigentümer)
+
+> ⚠️ **CRITICAL: The role MUST be "System Owner" (Systemeigentümer), NOT "System Administrator" (Systemadministrator).** With System Administrator, most tools work fine, but these endpoints return 403 Forbidden: `CallHistoryView`, `ChatHistoryView`, `Recordings`, `ScheduledReports`. This means `get_call_logs` will fail. Always use System Owner.
+
+7. Click **Save**
+8. A popup shows the **API Secret** — **copy it immediately, it is only shown once!**
+9. Store the Client ID (e.g. `900`) and API Secret securely (e.g. in a password manager)
 
 ## Installation
 
@@ -44,22 +52,46 @@ npm run build
 
 ## Configuration
 
-Copy the example environment file and fill in your values:
-
 ```bash
 cp .env.example .env
 ```
 
+Edit `.env` with your values:
+
 ```env
 TCX_FQDN=your-company.my3cx.de
 TCX_PORT=443
-TCX_CLIENT_ID=your_client_id
-TCX_CLIENT_SECRET=your_client_secret
+TCX_CLIENT_ID=900
+TCX_CLIENT_SECRET=your_api_secret_here
 ```
 
-**Port configuration:**
-- Hosted instances (`*.my3cx.de`) use port **443** (standard HTTPS)
-- Self-hosted instances typically use port **5001**
+### Which port to use?
+
+| Deployment | Example FQDN | Port |
+|------------|---------------|------|
+| 3CX Hosted | `company.my3cx.de`, `company.3cx.eu` | **443** |
+| Self-hosted (Linux/Windows) | `pbx.company.com` | **5001** |
+
+If unsure, try port 443 first. If you get "Connection refused", switch to 5001.
+
+### Verify API Connection
+
+Before starting the MCP server, test that your credentials work:
+
+```bash
+curl -s -X POST "https://YOUR-FQDN/connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=YOUR_CLIENT_ID&client_secret=YOUR_SECRET&grant_type=client_credentials"
+```
+
+**Expected:** JSON with `"access_token"` and `"token_type": "Bearer"`
+
+| Response | Meaning |
+|----------|---------|
+| `{"access_token":"eyJ..."}` | Connection works |
+| `401 Unauthorized` | Wrong Client ID or Secret |
+| `Connection refused` | Wrong port — try 443 or 5001 |
+| `Could not resolve host` | Wrong FQDN |
 
 ## Usage
 
@@ -76,8 +108,8 @@ Add to your `claude_desktop_config.json`:
       "env": {
         "TCX_FQDN": "your-company.my3cx.de",
         "TCX_PORT": "443",
-        "TCX_CLIENT_ID": "your_client_id",
-        "TCX_CLIENT_SECRET": "your_client_secret"
+        "TCX_CLIENT_ID": "900",
+        "TCX_CLIENT_SECRET": "your_api_secret_here"
       }
     }
   }
@@ -97,8 +129,8 @@ Add to your VS Code `settings.json`:
       "env": {
         "TCX_FQDN": "your-company.my3cx.de",
         "TCX_PORT": "443",
-        "TCX_CLIENT_ID": "your_client_id",
-        "TCX_CLIENT_SECRET": "your_client_secret"
+        "TCX_CLIENT_ID": "900",
+        "TCX_CLIENT_SECRET": "your_api_secret_here"
       }
     }
   }
@@ -186,8 +218,8 @@ npm run inspect:win
 |----------|----------|---------|-------------|
 | `TCX_FQDN` | Yes | — | 3CX hostname (e.g. `company.my3cx.de`) |
 | `TCX_PORT` | No | `443` | HTTPS port (443 for hosted, 5001 for self-hosted) |
-| `TCX_CLIENT_ID` | Yes | — | OAuth2 Client ID from 3CX API setup |
-| `TCX_CLIENT_SECRET` | Yes | — | OAuth2 Client Secret from 3CX API setup |
+| `TCX_CLIENT_ID` | Yes | — | Numeric extension number from API setup (e.g. `900`) |
+| `TCX_CLIENT_SECRET` | Yes | — | API Secret from 3CX (shown once during setup) |
 | `TCX_WEBAPI_KEY` | No | — | Legacy WebAPI access key (not used yet) |
 | `TCX_CALLCONTROL_ENABLED` | No | `false` | Enable Call Control API (Enterprise only, not used yet) |
 | `MCP_TRANSPORT` | No | `stdio` | Transport type (`stdio` or `http`) |
@@ -197,10 +229,12 @@ npm run inspect:win
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| **401 Unauthorized** | Invalid or expired credentials | Re-check `TCX_CLIENT_ID` and `TCX_CLIENT_SECRET`. Regenerate the API key in 3CX Admin if needed. |
-| **403 Forbidden** on CallHistoryView, Recordings | Insufficient role | Change the service principal role to **System Owner** (not System Administrator). |
-| **Connection refused** on port 5001 | Hosted instance uses different port | Set `TCX_PORT=443` for hosted `*.my3cx.de` instances. |
-| **fetch failed** / ENOTFOUND | Wrong hostname or no connectivity | Verify `TCX_FQDN` is correct and reachable via HTTPS. |
+| **401 Unauthorized** | Invalid credentials | Re-check `TCX_CLIENT_ID` and `TCX_CLIENT_SECRET`. The secret is only shown once during creation — regenerate the API key if lost. |
+| **403 Forbidden** on get_call_logs | Wrong role | Service principal role must be **System Owner**, not System Administrator. Recreate the API key with the correct role. |
+| **"Format invalid"** when creating API key | Non-numeric Client ID | The Client ID must be a number (e.g. `900`), not text. |
+| **Connection refused** on port 5001 | Hosted instance | Set `TCX_PORT=443` for `*.my3cx.de` hosted instances. |
+| **fetch failed** / ENOTFOUND | Wrong hostname | Verify `TCX_FQDN` is correct and reachable. Try opening `https://YOUR-FQDN` in a browser. |
+| **ECONNREFUSED** | Wrong port | Try the other port (443 vs 5001). See port table above. |
 
 ## License
 
@@ -216,10 +250,36 @@ Issues and pull requests are welcome at [github.com/SSIG-IT/3cx-mcp-server](http
 
 Ein MCP-Server, der Claude mit einer 3CX Telefonanlage (V20+) verbindet.
 
-### Einrichtung in 5 Schritten
+### Einrichtung
 
-1. **API-Key erstellen:** 3CX Admin Console > Integrationen > API > Hinzufügen > XAPI aktivieren > Rolle: **Systemeigentümer**
-2. **Repository klonen:** `git clone https://github.com/SSIG-IT/3cx-mcp-server.git`
-3. **Konfigurieren:** `.env.example` nach `.env` kopieren, FQDN und Credentials eintragen. Port 443 für gehostete Instanzen (`*.my3cx.de`), Port 5001 für selbst-gehostete.
-4. **Bauen:** `npm install && npm run build`
+1. **API-Key erstellen:** 3CX Web Client > Zahnrad-Icon (Admin) > Integrationen > API > Hinzufügen
+   - **Client-ID:** Muss eine **numerische Nebenstellennummer** sein (z.B. `900`), kein Text!
+   - **XAPI** aktivieren
+   - **Rolle:** Unbedingt **Systemeigentümer** wählen (nicht Systemadministrator — sonst scheitert z.B. `get_call_logs` mit 403)
+   - Speichern > **API-Key sofort kopieren** — er wird nur einmal angezeigt!
+
+2. **Repository klonen und bauen:**
+   ```bash
+   git clone https://github.com/SSIG-IT/3cx-mcp-server.git
+   cd 3cx-mcp-server
+   npm install && npm run build
+   ```
+
+3. **Konfigurieren:** `.env.example` nach `.env` kopieren und ausfüllen:
+   ```env
+   TCX_FQDN=firma.my3cx.de
+   TCX_PORT=443
+   TCX_CLIENT_ID=900
+   TCX_CLIENT_SECRET=dein_api_secret
+   ```
+   Port **443** für gehostete Instanzen (`*.my3cx.de`), Port **5001** für selbst-gehostete.
+
+4. **Verbindung testen:**
+   ```bash
+   curl -s -X POST "https://FQDN/connect/token" \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "client_id=CLIENT_ID&client_secret=SECRET&grant_type=client_credentials"
+   ```
+   Erwartete Antwort: JSON mit `access_token`.
+
 5. **In Claude einbinden:** MCP-Server in `claude_desktop_config.json` oder VS Code `settings.json` eintragen (siehe Beispiele oben)

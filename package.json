@@ -34,7 +34,10 @@
     "pbx",
     "telephony",
     "voip",
-    "claude"
+    "claude",
+    "model-context-protocol",
+    "msp",
+    "phone-system"
   ],
   "author": "SSIG-IT GmbH",
   "license": "MIT",
