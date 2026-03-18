@@ -225,9 +225,6 @@ npm run inspect:win
 | `TCX_PORT` | No | `443` | HTTPS port (443 for hosted, 5001 for self-hosted) |
 | `TCX_CLIENT_ID` | Yes | — | Numeric extension number from API setup (e.g. `900`) |
 | `TCX_CLIENT_SECRET` | Yes | — | API Secret from 3CX (shown once during setup) |
-| `TCX_WEBAPI_KEY` | No | — | Legacy WebAPI access key (not used yet) |
-| `TCX_CALLCONTROL_ENABLED` | No | `false` | Enable Call Control API (Enterprise only, not used yet) |
-| `MCP_TRANSPORT` | No | `stdio` | Transport type (`stdio` or `http`) |
 | `MCP_LOG_LEVEL` | No | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 
 ## Troubleshooting
@@ -251,8 +248,6 @@ Issues and pull requests are welcome at [github.com/SSIG-IT/3cx-mcp-server](http
 
 ## Publishing & Distribution
 
-This server can be listed on the following MCP directories:
-
 ### Official MCP Registry
 
 The [`server.json`](server.json) file contains the registry metadata. To publish:
@@ -269,18 +264,6 @@ mcp-publisher publish server.json
 ```
 
 > **Note:** The npm package `@ssig-it/3cx-mcp-server` referenced in `server.json` must be published to npm first (`npm publish`) before registry submission.
-
-### Smithery Marketplace
-
-The [`smithery.yaml`](smithery.yaml) file contains the Smithery configuration. To list:
-
-1. Go to [smithery.ai/new](https://smithery.ai/new)
-2. Connect your GitHub repository
-3. The server is automatically listed using the `smithery.yaml` config
-
-### PulseMCP
-
-[PulseMCP](https://pulsemcp.com) automatically indexes servers from the MCP Registry and Smithery. No manual action needed.
 
 ### GitHub Topics
 
