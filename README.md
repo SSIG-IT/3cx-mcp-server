@@ -131,22 +131,28 @@ TCX_CLIENT_ID=900
 TCX_CLIENT_SECRET=your_api_secret_here
 ```
 
-Notes:
+`TCX_TIMEZONE` is strongly recommended — it defines the day boundary for `get_call_history(scope="today")`. Without it, "today" falls back to the host timezone (may be UTC on remote systems).
 
-- `TCX_TIMEZONE` is strongly recommended. It defines the day boundary for tools like `get_recent_calls` and `get_recent_missed_calls`.
-- Without `TCX_TIMEZONE`, calendar-day queries such as "missed calls today" fall back to the MCP host timezone, which may be `UTC` on remote systems.
-- For hosted 3CX systems, `TCX_PORT=443` is usually correct. For many self-hosted systems, use `5001`.
-- If you want to avoid GitHub/`npx` cache issues during testing, you can pin a specific revision:
+To force a fresh install after updates: `npx --force -y github:SSIG-IT/3cx-mcp-server`
 
-```txt
--y github:SSIG-IT/3cx-mcp-server#main
+### Standalone HTTP Transport
+
+Run the server as a remote HTTP endpoint (without MetaMCP):
+
+```env
+MCP_TRANSPORT=http
+MCP_HTTP_PORT=8080
 ```
 
-or:
-
-```txt
--y github:SSIG-IT/3cx-mcp-server#<commit-or-tag>
+```bash
+npm run build && npm start
+# Server listens on http://0.0.0.0:8080/mcp
+# Health check: http://0.0.0.0:8080/health
 ```
+
+Deploy behind a reverse proxy (nginx/Cloudflare) with HTTPS for production use.
+
+### Testing
 
 Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `npm run inspect` (macOS/Linux) or `npm run inspect:win` (Windows). The `.env` file is loaded automatically.
 
@@ -243,7 +249,7 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 | Error | Cause | Fix |
 |-------|-------|-----|
 | **401 Unauthorized** | Invalid credentials | Re-check `TCX_CLIENT_ID` and `TCX_CLIENT_SECRET`. Regenerate the API key if the secret was lost. |
-| **403 Forbidden** on get_call_logs | Wrong role | Service principal role must be **System Owner**, not System Administrator. |
+| **403 Forbidden** on get_call_history | Wrong role | Service principal role must be **System Owner**, not System Administrator. |
 | **"Format invalid"** creating API key | Non-numeric Client ID | The Client ID must be a number (e.g. `900`), not text. |
 | **Connection refused** | Wrong port | Set `TCX_PORT=443` for hosted `*.my3cx.de` instances, `5001` for self-hosted. |
 | **fetch failed** / ENOTFOUND | Wrong hostname | Verify `TCX_FQDN` is correct and reachable via HTTPS. |
