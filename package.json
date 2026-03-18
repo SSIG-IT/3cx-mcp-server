@@ -8,6 +8,7 @@
     "3cx-mcp": "./build/index.js"
   },
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node build/index.js",
