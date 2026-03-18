@@ -126,9 +126,9 @@ function buildDateRange(scope: CallScope, date: string | undefined, timezone: st
     };
   }
 
-  // all_recent: last 7 days
+  // all_recent: last 3 days (keeps API calls reasonable)
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const weekAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
   return {
     periodFrom: `${getLocalDateString(weekAgo, timezone)}T00:00:00Z`,
     periodTo: `${getLocalDateString(now, timezone)}T23:59:59Z`,
@@ -205,7 +205,7 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
     skip += page.length;
 
     for (const entry of page) {
-      if (query.missedOnly && entry.Answered !== false) {
+      if (query.missedOnly && entry.Answered !== false && entry.Status !== "Unanswered") {
         continue;
       }
 
@@ -280,8 +280,8 @@ export function registerCallTools(server: McpServer, xapi: XapiClient, config: C
     "get_call_history",
     "Use this for ANY question about past calls: 'show today's calls', 'missed calls today', 'recent calls for extension 101', 'calls to queue 802 yesterday'. Returns newest calls first. Each record: StartTime, SourceDisplayName, SourceCallerId, DestinationDisplayName, DestinationCallerId, Answered (true/false), TalkingDuration, Direction, Status, Reason. Set missedOnly=true for missed/unanswered calls. Handles timezone-aware 'today' filtering automatically. Requires System Owner role.",
     {
-      scope: z.enum(["today", "last_24_hours", "all_recent"]).optional().default("today").describe("Time window: 'today' (default), 'last_24_hours', or 'all_recent' (last 7 days)"),
-      missedOnly: z.boolean().optional().default(false).describe("Set true for missed/unanswered calls only"),
+      scope: z.enum(["today", "last_24_hours", "all_recent"]).optional().default("today").describe("Time window: 'today' (default), 'last_24_hours', or 'all_recent' (last 3 days)"),
+      missedOnly: z.boolean().optional().default(false).describe("Set true for missed/unanswered calls only (checks both Answered=false and Status='Unanswered')"),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Explicit date in YYYY-MM-DD format, e.g. '2026-03-17' for yesterday"),
       timezone: z.string().optional().describe(`IANA timezone, e.g. 'Europe/Berlin'. Defaults to ${defaultTimezone}.`),
       top: z.number().optional().default(20).describe("Max results to return (applied after sorting)"),
