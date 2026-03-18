@@ -51,7 +51,7 @@ Log in to your 3CX Web Client as **System Owner**. Click the **gear icon** (bott
 5. Set **Department** to your main department (usually DEFAULT)
 6. Set the **Role** to **System Owner** (Systemeigentümer)
 
-> ⚠️ **The role MUST be "System Owner", NOT "System Administrator".** With System Administrator, most tools work but `get_call_logs`, `ChatHistoryView`, `Recordings` and `ScheduledReports` return 403.
+> ⚠️ **The role MUST be "System Owner", NOT "System Administrator".** With System Administrator, most tools work but `get_call_history`, `ChatHistoryView`, `Recordings` and `ScheduledReports` return 403.
 
 7. Click **Save**
 8. A popup shows the **API Secret** — **copy it immediately, it is only shown once!**
@@ -219,7 +219,7 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 | Tool | Type | Description |
 |------|------|-------------|
 | `get_active_calls` | Read | Currently live calls |
-| `get_call_history` | Read | Call history with scope (today/last_24h/all), missedOnly filter, extension/queue filter. Timezone-aware. |
+| `get_call_history` | Read | Call history (V20 U6+ ReportCallLogData) with scope (today/last_24h/all), missedOnly filter, extension/queue filter. Timezone-aware. |
 
 </details>
 

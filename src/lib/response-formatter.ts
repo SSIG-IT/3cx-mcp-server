@@ -28,9 +28,9 @@ const SUMMARY_FIELDS: Record<EntityType, string[]> = {
     "Department", "ContactType",
   ],
   call_history: [
-    "SegmentStartTime", "SegmentEndTime", "SrcDisplayName",
-    "SrcCallerNumber", "DstDisplayName", "DstCallerNumber",
-    "CallAnswered", "CallTime", "SegmentType",
+    "StartTime", "SourceDisplayName", "SourceCallerId",
+    "DestinationDisplayName", "DestinationCallerId",
+    "Answered", "TalkingDuration", "Direction", "Status", "Reason",
   ],
   active_call: [
     "Id", "Caller", "Callee", "Status", "Duration",

@@ -20,7 +20,7 @@ OAuth2 Client Credentials: POST /connect/token mit client_id + client_secret →
 ## Wichtig: Rollen & Berechtigungen
 - Dienstprinzipal braucht Rolle **Systemeigentümer** (System Owner), nicht nur Systemadministrator
 - Systemadministrator reicht für: Users, Groups, Trunks, ActiveCalls, SystemStatus, EventLogs, Queues, RingGroups, Contacts
-- Systemeigentümer nötig für: CallHistoryView, ChatHistoryView, Recordings, ScheduledReports (sonst 403)
+- Systemeigentümer nötig für: ReportCallLogData (Anrufhistorie), ChatHistoryView, Recordings, ScheduledReports (sonst 403)
 
 ## Ports
 - Gehostete Instanzen (*.my3cx.de): Port 443 (Standard-HTTPS)
@@ -34,7 +34,8 @@ OAuth2 Client Credentials: POST /connect/token mit client_id + client_secret →
 - GET /Groups, POST /Groups, PATCH /Groups({Id}) — Abteilungen
 - GET /Trunks, GET /Trunks({Id}) — SIP-Trunks
 - GET /ActiveCalls — Aktive Anrufe
-- GET /CallHistoryView — Anrufhistorie (braucht System Owner)
+- GET /ReportCallLogData/Pbx.GetCallLogData(...) — Anrufhistorie V20 U6+ (braucht System Owner, liest aus cdr_output)
+- GET /CallHistoryView — Nur Alt-Daten vor V20 U6 (cl_*-Tabellen, nicht mehr befüllt nach U6-Upgrade)
 - GET /Queues — Warteschlangen
 - GET /RingGroups — Ringgruppen
 - GET /Contacts — Telefonbuch (supports OData contains() filter)

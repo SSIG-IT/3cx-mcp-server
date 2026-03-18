@@ -57,7 +57,7 @@ You have 22 tools to query and manage the phone system.
 
 1. For update_user and delete_user, you always need the numeric **Id** (not the extension number). Call get_user first to get it.
 2. Write operations (create, update, delete, set_forwarding_profile) are destructive. Always confirm with the user before executing.
-3. Call history is sorted newest-first. Date filters are applied locally because the 3CX API has a bug with server-side date filtering.
+3. Call history uses the V20 U6+ ReportCallLogData endpoint (cdr_output table). Date range is server-side via periodFrom/periodTo. Results are sorted newest-first client-side.
 4. The server handles timezone-aware "today" filtering automatically via TCX_TIMEZONE.
 5. Responses are compact — only essential fields are returned to keep your context window efficient.
 `.trim();
