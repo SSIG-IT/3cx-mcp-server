@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { XapiClient } from "../api/xapi-client.js";
 import { z } from "zod";
+import { formatListResponse, formatSingleResponse, toMcpText } from "../lib/response-formatter.js";
 
 export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
   server.tool(
@@ -16,7 +17,7 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
         const query = params.toString() ? `?${params}` : "";
         const result = await xapi.get(`/Groups${query}`);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: toMcpText(formatListResponse(result, "department")) }],
         };
       } catch (err) {
         return {
@@ -44,7 +45,7 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
         return {
           content: [{
             type: "text",
-            text: `Department created successfully:\n${JSON.stringify(result, null, 2)}`,
+            text: `Department created successfully:\n${toMcpText(formatSingleResponse(result, "department"))}`,
           }],
         };
       } catch (err) {
@@ -82,7 +83,7 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
         return {
           content: [{
             type: "text",
-            text: `Department ${id} updated successfully:\n${JSON.stringify(updated, null, 2)}`,
+            text: `Department ${id} updated successfully:\n${toMcpText(formatSingleResponse(updated, "department"))}`,
           }],
         };
       } catch (err) {

@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { XapiClient } from "../api/xapi-client.js";
 import { z } from "zod";
+import { formatListResponse, toMcpText } from "../lib/response-formatter.js";
 
 export function registerForwardingTools(server: McpServer, xapi: XapiClient) {
   server.tool(
@@ -20,10 +21,11 @@ export function registerForwardingTools(server: McpServer, xapi: XapiClient) {
           };
         }
         const profiles = await xapi.get(`/Users(${user.Id})/ForwardingProfiles`);
+        const formatted = formatListResponse(profiles, "forwarding_profile");
         return {
           content: [{
             type: "text",
-            text: `Current profile: ${(user as Record<string, unknown>).CurrentProfileName}\n\n${JSON.stringify(profiles, null, 2)}`,
+            text: `Current profile: ${(user as Record<string, unknown>).CurrentProfileName}\n\n${toMcpText(formatted)}`,
           }],
         };
       } catch (err) {

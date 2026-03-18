@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { XapiClient } from "../api/xapi-client.js";
 import { z } from "zod";
+import { formatListResponse, toMcpText } from "../lib/response-formatter.js";
 
 export function registerLogTools(server: McpServer, xapi: XapiClient) {
   server.tool(
@@ -20,7 +21,7 @@ export function registerLogTools(server: McpServer, xapi: XapiClient) {
         const query = params.toString() ? `?${params}` : "";
         const result = await xapi.get(`/EventLogs${query}`);
         return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          content: [{ type: "text", text: toMcpText(formatListResponse(result, "event_log", { top })) }],
         };
       } catch (err) {
         return {
