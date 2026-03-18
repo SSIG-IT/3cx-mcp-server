@@ -81,32 +81,8 @@ function isLoggedInAgent(agent: QueueAgent): boolean {
 
 export function registerQueueTools(server: McpServer, xapi: XapiClient) {
   server.tool(
-    "list_queues",
-    "Low-level/raw queue list with optional OData filtering. Each queue has: Id, Number, Name, IsRegistered, PollingStrategy, Agents (list of agents with their login status), RingTimeout, MaxWaitTime. Filter examples: \"Name eq 'Support'\", \"Number eq '800'\". Prefer find_queues for natural-language lookup and get_queue_agents for 'who is logged into queue X?' questions.",
-    {
-      filter: z.string().optional().describe("OData $filter, e.g. \"Name eq 'Support'\" or \"Number eq '800'\""),
-    },
-    async ({ filter }) => {
-      try {
-        const params = new URLSearchParams();
-        if (filter) params.set("$filter", filter);
-        const query = params.toString() ? `?${params}` : "";
-        const result = await xapi.get(`/Queues${query}`);
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (err) {
-        return {
-          content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
-          isError: true,
-        };
-      }
-    },
-  );
-
-  server.tool(
     "find_queues",
-    "Best queue lookup tool for AI agents. Searches queues by queue number or queue name and returns the closest matches. Use this for questions like 'find support queue', 'show queue 802', or 'which queue is called sales?'.",
+    "Use this when the user asks about call queues: 'show all queues', 'find support queue', 'which queue is 802?'. Searches by queue number or name with fuzzy matching. Returns: Id, Number, Name, IsRegistered, PollingStrategy, Agents (with login status), RingTimeout, MaxWaitTime. Use get_queue_agents for detailed agent info on a specific queue.",
     {
       query: z.string().describe("Queue number or queue name to search for."),
       top: z.number().optional().default(10).describe("Maximum number of matching queues to return."),
@@ -137,7 +113,7 @@ export function registerQueueTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "get_queue_agents",
-    "Returns agent/member information for one queue, resolved by queue number or queue name. Use this for questions like 'who is in support queue?' or 'which agents are logged into 802?'. If loggedInOnly is true, the tool filters to agents that appear logged in based on common 3CX agent status fields.",
+    "Use this when the user asks 'who is in queue X?', 'which agents are logged into 802?', or 'who is working the support queue?'. Resolves the queue by number or name, then returns its agents with login status. Set loggedInOnly=true to show only currently logged-in agents.",
     {
       queue: z.string().describe("Queue number or queue name, e.g. '802' or 'Support'."),
       loggedInOnly: z.boolean().optional().default(false).describe("If true, only agents that appear logged in are returned."),
@@ -201,7 +177,7 @@ export function registerQueueTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "list_ring_groups",
-    "Returns all ring groups on the 3CX system. Ring groups ring multiple extensions simultaneously or in sequence. Each has: Id, Number, Name, Members, RingStrategy. Filter examples: \"Name eq 'Sales'\".",
+    "Use this when the user asks about ring groups (not queues). Ring groups ring multiple extensions simultaneously or in sequence. Returns: Id, Number, Name, Members, RingStrategy.",
     {
       filter: z.string().optional().describe("OData $filter, e.g. \"Name eq 'Sales'\""),
     },

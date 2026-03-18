@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Server-blue" alt="MCP Server"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7-blue" alt="TypeScript"></a>
-  <a href="https://github.com/SSIG-IT/3cx-mcp-server#available-tools-29"><img src="https://img.shields.io/badge/Tools-29-brightgreen" alt="Tools"></a>
+  <a href="https://github.com/SSIG-IT/3cx-mcp-server#available-tools-22"><img src="https://img.shields.io/badge/Tools-22-brightgreen" alt="Tools"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-20+-green" alt="Node.js"></a>
   <a href="https://www.3cx.com"><img src="https://img.shields.io/badge/3CX-V20+-orange" alt="3CX V20+"></a>
@@ -22,7 +22,7 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that c
 - **Forwarding Control** — view and change forwarding profiles per extension
 - **System Administration** — system status, trunks, departments, event logs
 
-The server authenticates via OAuth2 Client Credentials against the 3CX Configuration API (XAPI), manages token lifecycle automatically, and exposes 29 tools over MCP's stdio transport.
+The server authenticates via OAuth2 Client Credentials against the 3CX Configuration API (XAPI), manages token lifecycle automatically, and exposes 22 tools over MCP's stdio transport.
 
 > **Quick Start**
 > ```bash
@@ -32,7 +32,7 @@ The server authenticates via OAuth2 Client Credentials against the 3CX Configura
 > npm start
 > ```
 
-**Contents:** [Prerequisites](#prerequisites) · [API Setup](#3cx-api-setup) · [Installation](#installation) · [Configuration](#configuration) · [Usage](#usage) · [Tools (29)](#available-tools-29) · [Troubleshooting](#troubleshooting) · [Deutsch](#deutsch)
+**Contents:** [Prerequisites](#prerequisites) · [API Setup](#3cx-api-setup) · [Installation](#installation) · [Configuration](#configuration) · [Usage](#usage) · [Tools (22)](#available-tools-22) · [Troubleshooting](#troubleshooting) · [Deutsch](#deutsch)
 
 ## Prerequisites
 
@@ -150,40 +150,29 @@ or:
 
 Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `npm run inspect` (macOS/Linux) or `npm run inspect:win` (Windows). The `.env` file is loaded automatically.
 
-## Available Tools (29)
-
-<details>
-<summary><strong>AI Routing</strong> — 1 tool</summary>
-
-| Tool | Type | Description |
-|------|------|-------------|
-| `plan_3cx_request` | Read | Natural-language router that recommends the right 3CX tool and arguments for a user's request |
-
-</details>
+## Available Tools (22)
 
 <details>
 <summary><strong>System</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `get_system_status` | Read | System status, version, license info, uptime |
-| `get_event_logs` | Read | System event logs with optional filter and paging |
+| `get_system_status` | Read | System health, version, license, active calls count, disk usage |
+| `get_event_logs` | Read | System event logs (filter by Type: Error, Warning, Info) |
 
 </details>
 
 <details>
-<summary><strong>Users & Extensions</strong> — 8 tools</summary>
+<summary><strong>Users & Extensions</strong> — 6 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `list_users` | Read | Raw user list with OData filter/paging |
-| `find_users` | Read | AI-friendly user lookup by extension, name, email, or mobile |
-| `get_online_users` | Read | Returns currently registered/online users |
-| `get_user` | Read | Get a single user by extension number |
-| `create_user` | **Write** | Create a new user/extension (Number, FirstName, LastName, Email) |
-| `update_user` | **Write** | Update user fields by ID (name, email, mobile, enabled) |
-| `delete_user` | **Write** | Delete one or more users by ID array |
-| `get_extension_status` | Read | Extension registration status, current profile, queue status |
+| `find_users` | Read | Search users by name, extension, email, or mobile. Set `onlyRegistered=true` for online users |
+| `get_user` | Read | Full details of one user by extension number (returns Id needed for update/delete) |
+| `get_extension_status` | Read | Quick status: is registered? current profile? queue status? |
+| `create_user` | **Write** | Create a new extension |
+| `update_user` | **Write** | Update user fields by Id |
+| `delete_user` | **Write** | Delete users by Id array |
 
 </details>
 
@@ -192,8 +181,8 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `get_forwarding_profiles` | Read | List all forwarding profiles and routing rules for an extension |
-| `set_forwarding_profile` | **Write** | Set active profile (Available, Away, Out of office, Custom 1, etc.) |
+| `get_forwarding_profiles` | Read | All forwarding profiles and routing rules for an extension |
+| `set_forwarding_profile` | **Write** | Change active profile (Available, Away, Out of office, etc.) |
 
 </details>
 
@@ -202,9 +191,9 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `list_departments` | Read | List all departments/groups (supports OData filter) |
-| `create_department` | **Write** | Create a new department (Name, Language, TimeZoneId) |
-| `update_department` | **Write** | Update department fields by ID |
+| `list_departments` | Read | All departments/groups |
+| `create_department` | **Write** | Create a department |
+| `update_department` | **Write** | Update department fields by Id |
 
 </details>
 
@@ -213,59 +202,41 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `list_trunks` | Read | List all configured SIP trunks |
-| `get_trunk_details` | Read | Detailed trunk info by ID (registration, routes, codecs) |
+| `list_trunks` | Read | All SIP trunks with registration status |
+| `get_trunk_details` | Read | Full trunk config by Id |
 
 </details>
 
 <details>
-<summary><strong>Calls & History</strong> — 4 tools</summary>
+<summary><strong>Calls & History</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `get_active_calls` | Read | Currently active calls on the system |
-| `get_call_logs` | Read | Raw call history/CDR with OData filter and paging (power-user endpoint; requires System Owner) |
-| `get_recent_calls` | Read | AI-friendly recent-call lookup with structured params like `scope`, `extension`, `queue` |
-| `get_recent_missed_calls` | Read | AI-friendly missed-call lookup that avoids fragile 3CX date filters |
-
-</details>
-
-Call-history guidance for MCP clients and AI agents:
-
-- Use `get_recent_calls` or `get_recent_missed_calls` for user-facing questions like "calls today", "missed calls today", or "recent calls for extension 101".
-- For calendar-day queries, set `TCX_TIMEZONE` on the server or pass `timezone` explicitly (for example `Europe/Berlin`). You can also pass `date` in `YYYY-MM-DD` format for an exact local day.
-- Use `get_call_logs` only when you explicitly need raw OData control (`$filter`, `$orderby`, `$skip`, `$top`).
-- Avoid server-side date filters on `CallHistoryView` because some 3CX systems return `500 Internal Server Error` for `SegmentStartTime` comparisons.
-
-<details>
-<summary><strong>Queues</strong> — 4 tools</summary>
-
-| Tool | Type | Description |
-|------|------|-------------|
-| `list_queues` | Read | Raw queue list with OData filter |
-| `find_queues` | Read | AI-friendly queue lookup by number or name |
-| `get_queue_agents` | Read | Returns queue members/agents for one queue |
-| `list_ring_groups` | Read | List all ring groups (supports OData filter) |
+| `get_active_calls` | Read | Currently live calls |
+| `get_call_history` | Read | Call history with scope (today/last_24h/all), missedOnly filter, extension/queue filter. Timezone-aware. |
 
 </details>
 
 <details>
-<summary><strong>Contacts</strong> — 3 tools</summary>
+<summary><strong>Queues</strong> — 3 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `list_contacts` | Read | Raw phonebook list with filter and paging |
-| `search_contacts` | Read | General contact search by name, company, or phone number |
-| `find_contact_by_phone` | Read | Exact/normalized phone-number lookup |
+| `find_queues` | Read | Search queues by number or name |
+| `get_queue_agents` | Read | Agents/members of a specific queue, with optional logged-in filter |
+| `list_ring_groups` | Read | All ring groups |
 
 </details>
 
-The recommended pattern for MCP clients and AI agents is:
+<details>
+<summary><strong>Contacts</strong> — 2 tools</summary>
 
-- If the user request is plain natural language and the correct tool is not obvious, call `plan_3cx_request` first.
-- Prefer intent-based tools first: `find_users`, `get_online_users`, `get_recent_calls`, `get_recent_missed_calls`, `find_queues`, `get_queue_agents`, `search_contacts`, and `find_contact_by_phone`.
-- Use raw list-style tools (`list_users`, `list_queues`, `list_contacts`, `get_call_logs`) only when you explicitly need OData control, paging, or broad exports.
-- Let the MCP server handle product quirks such as 3CX call-history sorting and fragile date filters instead of trying to reconstruct them in the model prompt.
+| Tool | Type | Description |
+|------|------|-------------|
+| `search_contacts` | Read | Search phonebook by name, company, or phone number |
+| `find_contact_by_phone` | Read | Exact phone number lookup with normalization |
+
+</details>
 
 ## Troubleshooting
 

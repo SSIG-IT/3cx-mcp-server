@@ -1,6 +1,6 @@
 {
   "name": "3cx-mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP Server for 3CX Phone System — manage users, extensions, calls, queues and more via Claude",
   "type": "module",
   "main": "build/index.js",

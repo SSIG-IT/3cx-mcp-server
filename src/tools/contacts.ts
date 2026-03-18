@@ -131,36 +131,8 @@ async function findContactsByPhone(
 
 export function registerContactTools(server: McpServer, xapi: XapiClient) {
   server.tool(
-    "list_contacts",
-    "Low-level/raw phonebook list with optional OData filtering. Each contact has: Id, FirstName, LastName, CompanyName, PhoneNumber, Business, Business2, BusinessFax, Mobile2, Home, Email, Department, Title, ContactType. Filter examples: \"CompanyName eq 'Acme'\", \"ContactType eq 'Company'\". Prefer search_contacts for general lookup and find_contact_by_phone for exact phone-based lookup.",
-    {
-      filter: z.string().optional().describe("OData $filter, e.g. \"CompanyName eq 'Acme'\" or \"LastName eq 'Mueller'\""),
-      top: z.number().optional().describe("Max results to return"),
-      skip: z.number().optional().describe("Results to skip (paging)"),
-    },
-    async ({ filter, top, skip }) => {
-      try {
-        const params = new URLSearchParams();
-        if (filter) params.set("$filter", filter);
-        if (top !== undefined) params.set("$top", String(top));
-        if (skip !== undefined) params.set("$skip", String(skip));
-        const query = params.toString() ? `?${params}` : "";
-        const result = await xapi.get(`/Contacts${query}`);
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (err) {
-        return {
-          content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
-          isError: true,
-        };
-      }
-    },
-  );
-
-  server.tool(
     "search_contacts",
-    "Recommended general contact lookup for AI agents. Searches the 3CX phonebook across multiple fields at once: FirstName, LastName, CompanyName, Business phone, and PhoneNumber. Use this for 'find contact Mueller' or 'who has phone number 0731...' queries. For exact phone matching with robust number normalization, use find_contact_by_phone instead.",
+    "Use this when the user asks about contacts or the phonebook: 'find contact Mueller', 'search for Acme', 'who has number 0731...'. Searches across FirstName, LastName, CompanyName, Business phone, and PhoneNumber. Returns: Id, FirstName, LastName, CompanyName, PhoneNumber, Business, Email, Department, Title. For exact phone number matching (ignoring formatting), use find_contact_by_phone instead.",
     {
       query: z.string().describe("Search term, e.g. a name like 'Mueller', a company like 'Acme', or a phone number like '0731'"),
     },
@@ -183,7 +155,7 @@ export function registerContactTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "find_contact_by_phone",
-    "Best tool for exact phone-number lookups. Scans contacts locally with normalized phone-number matching so formatting differences like spaces, slashes, and dashes do not matter. Use this for questions like 'whose number is +49 731 123456?' or 'find the contact for 0176-1234567'.",
+    "Use this when the user provides a specific phone number and wants to know who it belongs to: 'whose number is +49 731 123456?', 'who called from 0176-1234567?'. Normalizes the number (ignores spaces, dashes, formatting) for exact matching across all phone fields.",
     {
       phone: z.string().describe("Phone number to match, in any common format."),
       top: z.number().optional().default(10).describe("Maximum number of matching contacts to return."),

@@ -162,36 +162,8 @@ async function findUsersByQuery(
 
 export function registerUserTools(server: McpServer, xapi: XapiClient) {
   server.tool(
-    "list_users",
-    "Low-level user/extension list with optional raw OData filtering. Each user has: Id, Number (extension), FirstName, LastName, DisplayName, EmailAddress, Mobile, IsRegistered, CurrentProfileName, QueueStatus, Enabled, Tags. Filter examples: \"FirstName eq 'Max'\", \"IsRegistered eq true\", \"Enabled eq true\". Prefer find_users for natural-language lookup and get_online_users for 'who is online?' questions.",
-    {
-      filter: z.string().optional().describe("OData $filter, e.g. \"IsRegistered eq true\" or \"LastName eq 'Mueller'\""),
-      top: z.number().optional().describe("Max results to return"),
-      skip: z.number().optional().describe("Results to skip (paging)"),
-    },
-    async ({ filter, top, skip }) => {
-      try {
-        const params = new URLSearchParams();
-        if (filter) params.set("$filter", filter);
-        if (top !== undefined) params.set("$top", String(top));
-        if (skip !== undefined) params.set("$skip", String(skip));
-        const query = params.toString() ? `?${params}` : "";
-        const result = await xapi.get(`/Users${query}`);
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (err) {
-        return {
-          content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
-          isError: true,
-        };
-      }
-    },
-  );
-
-  server.tool(
     "find_users",
-    "Best user lookup tool for AI agents. Searches across extension number, first name, last name, display name, email address, and mobile number. Use this for questions like 'find Philipp', 'who has extension 101?', or 'find user with email support@example.com'.",
+    "Use this when the user asks about people, extensions, or phone users. Searches across extension number, first name, last name, display name, email, and mobile. Examples: 'find Philipp', 'who has extension 101?', 'who is online?', 'list all users'. Set onlyRegistered=true for 'who is online/registered?' questions. Returns: Id, Number, FirstName, LastName, DisplayName, EmailAddress, Mobile, IsRegistered, CurrentProfileName, QueueStatus, Enabled.",
     {
       query: z.string().describe("Name, extension, email, or phone fragment to search for."),
       top: z.number().optional().default(10).describe("Maximum number of matching users to return."),
@@ -221,36 +193,8 @@ export function registerUserTools(server: McpServer, xapi: XapiClient) {
   );
 
   server.tool(
-    "get_online_users",
-    "Returns users whose extensions are currently registered on 3CX. Use this for questions like 'who is online right now?' or 'which phones are currently connected?'. This is the recommended tool for presence-style user queries.",
-    {
-      top: z.number().optional().default(100).describe("Maximum number of online users to return."),
-      includeDisabled: z.boolean().optional().default(false).describe("Whether disabled-but-registered users should be included."),
-    },
-    async ({ top, includeDisabled }) => {
-      try {
-        const filter = includeDisabled ? "IsRegistered eq true" : "IsRegistered eq true and Enabled eq true";
-        const query = buildUserQuery({
-          $filter: filter,
-          $top: top,
-          $orderby: "Number asc",
-        });
-        const result = await xapi.get(`/Users${query}`);
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
-      } catch (err) {
-        return {
-          content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
-          isError: true,
-        };
-      }
-    },
-  );
-
-  server.tool(
     "get_user",
-    "Returns full details of one 3CX user by extension number. Returns all fields including Id (needed for update_user/delete_user), Number, FirstName, LastName, DisplayName, EmailAddress, Mobile, IsRegistered, CurrentProfileName, QueueStatus, Enabled, Tags, ForwardingProfiles, and more. If you need the numeric Id for update/delete operations, call this first.",
+    "Use this when the user asks about ONE specific extension by number. Returns the complete user record including the numeric Id (needed for update_user and delete_user). Fields: Id, Number, FirstName, LastName, DisplayName, EmailAddress, Mobile, IsRegistered, CurrentProfileName, QueueStatus, Enabled, Tags. Always call this before update_user or delete_user to get the Id.",
     {
       extension: z.string().describe("Extension number, e.g. '101' or '200'"),
     },
@@ -278,7 +222,7 @@ export function registerUserTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "create_user",
-    "[DESTRUCTIVE] Creates a new 3CX user/extension. Allocates an extension number on the phone system. The Number must be unused — use list_users first to check. Returns the created user object with its assigned Id.",
+    "[DESTRUCTIVE] Creates a new 3CX user/extension. The Number must be unused — use find_users first to check availability. Returns the created user with its assigned Id. Requires confirmation from the user before executing.",
     {
       Number: z.string().describe("Extension number to assign, e.g. '106'. Must be unused."),
       FirstName: z.string().describe("First name"),

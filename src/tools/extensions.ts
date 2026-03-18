@@ -5,7 +5,7 @@ import { z } from "zod";
 export function registerExtensionTools(server: McpServer, xapi: XapiClient) {
   server.tool(
     "get_extension_status",
-    "Quick status check for a 3CX extension. Returns: Number, DisplayName, IsRegistered (true=phone connected), CurrentProfileName (Available/Away/Out of office/DND), QueueStatus (LoggedIn/LoggedOut). Use this when the user asks 'is extension X online?' or 'what's the status of extension X?'. For full user details, use get_user instead.",
+    "Use this when the user asks 'is extension 101 online?', 'what status has extension 200?', or 'is Philipp available?'. Returns: Number, DisplayName, IsRegistered (true=phone connected), CurrentProfileName (Available/Away/Out of office), QueueStatus (LoggedIn/LoggedOut). For full user details use get_user, for searching by name use find_users.",
     {
       extension: z.string().describe("Extension number, e.g. '101'"),
     },
