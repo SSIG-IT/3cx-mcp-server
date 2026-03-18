@@ -114,6 +114,40 @@ Add to your `claude_desktop_config.json`:
 
 For Claude Code in VS Code, use the same configuration in your VS Code `settings.json` under `claude.mcpServers`.
 
+### MetaMCP
+
+For MetaMCP, add the server with:
+
+- Command: `npx`
+- Arguments: `-y github:SSIG-IT/3cx-mcp-server`
+
+Set these environment variables:
+
+```env
+TCX_FQDN=your-company.my3cx.de
+TCX_PORT=443
+TCX_TIMEZONE=Europe/Berlin
+TCX_CLIENT_ID=900
+TCX_CLIENT_SECRET=your_api_secret_here
+```
+
+Notes:
+
+- `TCX_TIMEZONE` is strongly recommended. It defines the day boundary for tools like `get_recent_calls` and `get_recent_missed_calls`.
+- Without `TCX_TIMEZONE`, calendar-day queries such as "missed calls today" fall back to the MCP host timezone, which may be `UTC` on remote systems.
+- For hosted 3CX systems, `TCX_PORT=443` is usually correct. For many self-hosted systems, use `5001`.
+- If you want to avoid GitHub/`npx` cache issues during testing, you can pin a specific revision:
+
+```txt
+-y github:SSIG-IT/3cx-mcp-server#main
+```
+
+or:
+
+```txt
+-y github:SSIG-IT/3cx-mcp-server#<commit-or-tag>
+```
+
 Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `npm run inspect` (macOS/Linux) or `npm run inspect:win` (Windows). The `.env` file is loaded automatically.
 
 ## Available Tools (28)
