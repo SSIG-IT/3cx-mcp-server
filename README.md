@@ -1,31 +1,54 @@
 # 3CX MCP Server
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that connects Claude to a 3CX Phone System (V20+). Query system status, manage users, view call logs, and more — directly from Claude Desktop, Claude Code, or any MCP-compatible client.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that connects Claude to a **3CX Phone System** (V20+). Manage users, monitor calls, search contacts, configure forwarding — directly from Claude Desktop, Claude Code, or any MCP-compatible client.
+
+## Features
+
+- **User Management** — list, create, update, delete users and extensions
+- **Call Monitoring** — view active calls and call history (CDR)
+- **Contact Search** — search and browse the 3CX phonebook
+- **Queue & Ring Group Status** — monitor call queues and ring groups
+- **Forwarding Control** — view and change forwarding profiles per extension
+- **System Administration** — system status, trunks, departments, event logs
 
 ## Prerequisites
 
-- **Node.js** 20+
-- **3CX** V20+ with a hosted or on-premise instance
-- **3CX API Key** — requires a license that includes XAPI access (ENT/AI or ENT+)
-- **System Owner role** — the service principal must have the **System Owner** (Systemeigentümer) role, not just System Administrator. The System Administrator role works for most endpoints, but `CallHistoryView`, `ChatHistoryView`, `Recordings`, and `ScheduledReports` return **403 Forbidden** without System Owner.
+- **Node.js** 20 or later
+- **3CX** V20+ (hosted or self-hosted)
+- **3CX License** with XAPI access — Enterprise (ENT/AI) or Enterprise Plus (ENT+)
 
-## Setup
+## 3CX API Setup
 
-### 1. Create a 3CX API Key
+### Step 1: Create a Service Principal
 
-1. Open the 3CX Admin Console
-2. Go to **Integrations > API > Add**
+1. Open the **3CX Admin Console**
+2. Navigate to **Integrations > API > Add**
 3. Enable **XAPI** access
 4. Set the role to **System Owner** (Systemeigentümer)
-5. Copy the **Client ID** and **Client Secret**
+5. Copy the **Client ID** (numeric extension number) and **Client Secret**
 
-### 2. Configure Environment
+> **Warning:** The role **must** be **System Owner**, not System Administrator. With System Administrator, most endpoints work, but `CallHistoryView`, `ChatHistoryView`, `Recordings`, and `ScheduledReports` will return **403 Forbidden**.
+
+### Step 2: Store API credentials securely
+
+Keep the Client ID and Client Secret in a safe place (e.g. a password manager). You will need them for the `.env` file and for any MCP client configuration.
+
+## Installation
+
+```bash
+git clone https://github.com/SSIG-IT/3cx-mcp-server.git
+cd 3cx-mcp-server
+npm install
+npm run build
+```
+
+## Configuration
+
+Copy the example environment file and fill in your values:
 
 ```bash
 cp .env.example .env
 ```
-
-Edit `.env` with your values:
 
 ```env
 TCX_FQDN=your-company.my3cx.de
@@ -34,17 +57,13 @@ TCX_CLIENT_ID=your_client_id
 TCX_CLIENT_SECRET=your_client_secret
 ```
 
-> **Port:** Hosted 3CX instances (`*.my3cx.de`) use port **443** (standard HTTPS). Self-hosted instances typically use port **5001**.
+**Port configuration:**
+- Hosted instances (`*.my3cx.de`) use port **443** (standard HTTPS)
+- Self-hosted instances typically use port **5001**
 
-### 3. Build & Run
+## Usage
 
-```bash
-npm install
-npm run build
-npm start
-```
-
-## Usage with Claude Desktop
+### Claude Desktop
 
 Add to your `claude_desktop_config.json`:
 
@@ -65,7 +84,7 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-## Usage with Claude Code (VS Code)
+### Claude Code (VS Code)
 
 Add to your VS Code `settings.json`:
 
@@ -88,108 +107,119 @@ Add to your VS Code `settings.json`:
 
 ## Testing with MCP Inspector
 
-```bash
-npm run inspect
-```
+The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) lets you interactively test each tool. The `.env` file is loaded automatically:
 
-This launches the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) where you can interactively test each tool.
+```bash
+# Linux / macOS
+npm run inspect
+
+# Windows (PowerShell)
+npm run inspect:win
+```
 
 ## Available Tools (21)
 
 ### System
 
-| Tool | Description |
-|------|-------------|
-| `get_system_status` | Retrieves 3CX system status (version, license, uptime) |
-| `get_event_logs` | Retrieves system event logs with optional filter |
+| Tool | Type | Description |
+|------|------|-------------|
+| `get_system_status` | Read | System status, version, license info, uptime |
+| `get_event_logs` | Read | System event logs with optional filter and paging |
 
 ### Users & Extensions
 
-| Tool | Description |
-|------|-------------|
-| `list_users` | Lists all users with optional OData filter and paging |
-| `get_user` | Retrieves a single user by extension number |
-| `create_user` | **[WRITE]** Creates a new user/extension |
-| `update_user` | **[WRITE]** Updates user fields (name, email, enabled, etc.) |
-| `delete_user` | **[WRITE]** Deletes one or more users by ID |
-| `get_extension_status` | Retrieves extension status (registered, profile, queue status) |
+| Tool | Type | Description |
+|------|------|-------------|
+| `list_users` | Read | List all users (supports OData `$filter`, `$top`, `$skip`) |
+| `get_user` | Read | Get a single user by extension number |
+| `create_user` | **Write** | Create a new user/extension (Number, FirstName, LastName, Email) |
+| `update_user` | **Write** | Update user fields by ID (name, email, mobile, enabled) |
+| `delete_user` | **Write** | Delete one or more users by ID array |
+| `get_extension_status` | Read | Extension registration status, current profile, queue status |
 
 ### Forwarding
 
-| Tool | Description |
-|------|-------------|
-| `get_forwarding_profiles` | Retrieves forwarding profiles and routing rules for an extension |
-| `set_forwarding_profile` | **[WRITE]** Sets active forwarding profile (Available, Away, DND, etc.) |
+| Tool | Type | Description |
+|------|------|-------------|
+| `get_forwarding_profiles` | Read | List all forwarding profiles and routing rules for an extension |
+| `set_forwarding_profile` | **Write** | Set active profile (Available, Away, Out of office, Custom 1, etc.) |
 
 ### Departments
 
-| Tool | Description |
-|------|-------------|
-| `list_departments` | Lists all departments/groups with optional filter |
-| `create_department` | **[WRITE]** Creates a new department |
-| `update_department` | **[WRITE]** Updates department fields |
+| Tool | Type | Description |
+|------|------|-------------|
+| `list_departments` | Read | List all departments/groups (supports OData filter) |
+| `create_department` | **Write** | Create a new department (Name, Language, TimeZoneId) |
+| `update_department` | **Write** | Update department fields by ID |
 
 ### Trunks
 
-| Tool | Description |
-|------|-------------|
-| `list_trunks` | Lists all configured SIP trunks |
-| `get_trunk_details` | Retrieves detailed info for a specific trunk |
+| Tool | Type | Description |
+|------|------|-------------|
+| `list_trunks` | Read | List all configured SIP trunks |
+| `get_trunk_details` | Read | Detailed trunk info by ID (registration, routes, codecs) |
 
 ### Calls & History
 
-| Tool | Description |
-|------|-------------|
-| `get_active_calls` | Retrieves currently active calls |
-| `get_call_logs` | Retrieves call history (CDR) with optional filter (requires System Owner) |
+| Tool | Type | Description |
+|------|------|-------------|
+| `get_active_calls` | Read | Currently active calls on the system |
+| `get_call_logs` | Read | Call history/CDR with filter and paging (requires System Owner) |
 
 ### Queues
 
-| Tool | Description |
-|------|-------------|
-| `list_queues` | Lists all call queues with optional filter |
-| `list_ring_groups` | Lists all ring groups with optional filter |
+| Tool | Type | Description |
+|------|------|-------------|
+| `list_queues` | Read | List all call queues (supports OData filter) |
+| `list_ring_groups` | Read | List all ring groups (supports OData filter) |
 
 ### Contacts
 
-| Tool | Description |
-|------|-------------|
-| `list_contacts` | Lists phonebook contacts with optional filter and paging |
-| `search_contacts` | Searches phonebook by name, company, or phone number |
+| Tool | Type | Description |
+|------|------|-------------|
+| `list_contacts` | Read | List phonebook contacts with filter and paging |
+| `search_contacts` | Read | Search by name, company, or phone number |
 
 ## Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `TCX_FQDN` | Yes | — | 3CX hostname (e.g. `company.my3cx.de`) |
-| `TCX_PORT` | No | `443` | HTTPS port (443 for hosted `*.my3cx.de`, typically 5001 for self-hosted) |
-| `TCX_CLIENT_ID` | Yes | — | OAuth2 Client ID |
-| `TCX_CLIENT_SECRET` | Yes | — | OAuth2 Client Secret |
-| `TCX_WEBAPI_KEY` | No | — | Legacy WebAPI access key |
-| `TCX_CALLCONTROL_ENABLED` | No | `false` | Enable Call Control API (Enterprise only) |
+| `TCX_PORT` | No | `443` | HTTPS port (443 for hosted, 5001 for self-hosted) |
+| `TCX_CLIENT_ID` | Yes | — | OAuth2 Client ID from 3CX API setup |
+| `TCX_CLIENT_SECRET` | Yes | — | OAuth2 Client Secret from 3CX API setup |
+| `TCX_WEBAPI_KEY` | No | — | Legacy WebAPI access key (not used yet) |
+| `TCX_CALLCONTROL_ENABLED` | No | `false` | Enable Call Control API (Enterprise only, not used yet) |
 | `MCP_TRANSPORT` | No | `stdio` | Transport type (`stdio` or `http`) |
 | `MCP_LOG_LEVEL` | No | `info` | Log level (`debug`, `info`, `warn`, `error`) |
 
+## Troubleshooting
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| **401 Unauthorized** | Invalid or expired credentials | Re-check `TCX_CLIENT_ID` and `TCX_CLIENT_SECRET`. Regenerate the API key in 3CX Admin if needed. |
+| **403 Forbidden** on CallHistoryView, Recordings | Insufficient role | Change the service principal role to **System Owner** (not System Administrator). |
+| **Connection refused** on port 5001 | Hosted instance uses different port | Set `TCX_PORT=443` for hosted `*.my3cx.de` instances. |
+| **fetch failed** / ENOTFOUND | Wrong hostname or no connectivity | Verify `TCX_FQDN` is correct and reachable via HTTPS. |
+
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
+
+## Contributing
+
+Issues and pull requests are welcome at [github.com/SSIG-IT/3cx-mcp-server](https://github.com/SSIG-IT/3cx-mcp-server).
 
 ---
 
-## Deutsch
+## Deutsch — Kurzanleitung
 
-Ein MCP-Server, der Claude mit einer 3CX Telefonanlage (V20+) verbindet. Systemstatus abfragen, Benutzer verwalten, Anrufprotokolle einsehen — direkt aus Claude Desktop oder Claude Code.
+Ein MCP-Server, der Claude mit einer 3CX Telefonanlage (V20+) verbindet.
 
-### Voraussetzungen
+### Einrichtung in 5 Schritten
 
-- Node.js 20+
-- 3CX V20+ (gehostet oder on-premise)
-- 3CX API Key mit XAPI-Zugriff (ENT/AI oder ENT+ Lizenz)
-- Dienstprinzipal mit Rolle **Systemeigentümer** (nicht nur Systemadministrator — sonst geben CallHistoryView, Recordings u.a. einen 403-Fehler zurück)
-
-### Einrichtung
-
-1. **API Key erstellen:** 3CX Admin Console > Integrationen > API > Hinzufügen > XAPI aktivieren > Rolle: **Systemeigentümer**
-2. **Konfiguration:** `.env.example` nach `.env` kopieren und Werte eintragen
-3. **Bauen:** `npm install && npm run build`
-4. **Starten:** `npm start`
+1. **API-Key erstellen:** 3CX Admin Console > Integrationen > API > Hinzufügen > XAPI aktivieren > Rolle: **Systemeigentümer**
+2. **Repository klonen:** `git clone https://github.com/SSIG-IT/3cx-mcp-server.git`
+3. **Konfigurieren:** `.env.example` nach `.env` kopieren, FQDN und Credentials eintragen. Port 443 für gehostete Instanzen (`*.my3cx.de`), Port 5001 für selbst-gehostete.
+4. **Bauen:** `npm install && npm run build`
+5. **In Claude einbinden:** MCP-Server in `claude_desktop_config.json` oder VS Code `settings.json` eintragen (siehe Beispiele oben)

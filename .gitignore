@@ -3,3 +3,4 @@ build/
 .env
 *.tsbuildinfo
 *.log
+.DS_Store
