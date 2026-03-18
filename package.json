@@ -36,5 +36,10 @@
     "voip",
     "claude"
   ],
-  "license": "MIT"
+  "author": "SSIG-IT GmbH",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ssig-it/3cx-mcp-server"
+  }
 }
