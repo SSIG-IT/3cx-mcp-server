@@ -40,7 +40,6 @@ registerForwardingTools(server, xapi);
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("3CX MCP Server running on stdio");
 }
 
 main().catch((err) => {
