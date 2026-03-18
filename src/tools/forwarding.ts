@@ -5,9 +5,9 @@ import { z } from "zod";
 export function registerForwardingTools(server: McpServer, xapi: XapiClient) {
   server.tool(
     "get_forwarding_profiles",
-    "Retrieves the forwarding profiles of a 3CX user by extension number, including routing rules for each profile.",
+    "Returns all forwarding profiles for a 3CX extension with their routing rules. Shows the currently active profile and all available profiles (typically: Available, Away, Out of office, Custom 1, Custom 2). Each profile contains routing rules for internal/external calls during office hours and outside. Use this to see how calls are routed for a specific extension.",
     {
-      extension: z.string().describe("The extension number (e.g. '101')"),
+      extension: z.string().describe("Extension number, e.g. '101'"),
     },
     async ({ extension }) => {
       try {
@@ -37,10 +37,10 @@ export function registerForwardingTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "set_forwarding_profile",
-    "[DESTRUCTIVE] Sets the active forwarding profile for a 3CX extension. Changes call routing immediately.",
+    "[DESTRUCTIVE] Changes the active forwarding profile for a 3CX extension. Takes effect immediately — calls will be routed according to the new profile. Standard profiles: 'Available', 'Away', 'Out of office', 'Custom 1', 'Custom 2'. Use get_forwarding_profiles first to see which profiles exist for the extension.",
     {
-      extension: z.string().describe("The extension number (e.g. '101')"),
-      profile: z.string().describe("Profile name: 'Available', 'Away', 'Out of office', 'Custom 1', etc."),
+      extension: z.string().describe("Extension number, e.g. '101'"),
+      profile: z.string().describe("Profile name exactly as shown in get_forwarding_profiles, e.g. 'Available', 'Away', 'Out of office'"),
     },
     async ({ extension, profile }) => {
       try {

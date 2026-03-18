@@ -5,11 +5,11 @@ import { z } from "zod";
 export function registerLogTools(server: McpServer, xapi: XapiClient) {
   server.tool(
     "get_event_logs",
-    "Retrieves system event logs from the 3CX system. Supports OData filtering and paging.",
+    "Returns system event logs from 3CX. Each entry has: Id, Type (Info/Warning/Error), EventId, Message. Filter examples: \"Type eq 'Error'\" for errors only, \"Type eq 'Warning'\" for warnings. Use this for 'are there any errors on the phone system?' or 'show me recent system events' questions.",
     {
-      filter: z.string().optional().describe("OData $filter expression, e.g. \"Type eq 'Error'\""),
-      top: z.number().optional().default(50).describe("Maximum number of results (default: 50)"),
-      skip: z.number().optional().describe("Number of results to skip (paging)"),
+      filter: z.string().optional().describe("OData $filter, e.g. \"Type eq 'Error'\" or \"Type eq 'Warning'\""),
+      top: z.number().optional().default(50).describe("Max results (default 50)"),
+      skip: z.number().optional().describe("Skip N results for paging"),
     },
     async ({ filter, top, skip }) => {
       try {

@@ -5,9 +5,9 @@ import { z } from "zod";
 export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
   server.tool(
     "list_departments",
-    "Lists all 3CX departments (groups). Supports OData filtering.",
+    "Returns all 3CX departments (called 'Groups' in the API). Each department has: Id, Name, Number, Language, TimeZoneId, Members. The Id is needed for update_department. Filter examples: \"Name eq 'Sales'\", \"Name eq 'DEFAULT'\".",
     {
-      filter: z.string().optional().describe("OData $filter expression, e.g. \"Name eq 'Sales'\""),
+      filter: z.string().optional().describe("OData $filter, e.g. \"Name eq 'Sales'\""),
     },
     async ({ filter }) => {
       try {
@@ -29,11 +29,11 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "create_department",
-    "[DESTRUCTIVE] Creates a new department (group) in the 3CX system.",
+    "[DESTRUCTIVE] Creates a new department (group) in 3CX. Returns the created department with its assigned Id.",
     {
-      Name: z.string().describe("Department name"),
-      Language: z.string().optional().describe("Language code (e.g. 'de', 'en')"),
-      TimeZoneId: z.string().optional().describe("Time zone ID (e.g. 'W. Europe Standard Time')"),
+      Name: z.string().describe("Department name, e.g. 'Sales' or 'IT Support'"),
+      Language: z.string().optional().describe("Language code, e.g. 'de' or 'en'"),
+      TimeZoneId: z.string().optional().describe("Time zone, e.g. 'W. Europe Standard Time'"),
     },
     async (params) => {
       try {
@@ -58,12 +58,12 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "update_department",
-    "[DESTRUCTIVE] Updates an existing department (group). Only provided fields will be changed.",
+    "[DESTRUCTIVE] Updates a 3CX department by its numeric Id. Get the Id from list_departments first. Only provided fields are changed.",
     {
-      id: z.number().describe("The numeric department/group ID"),
-      Name: z.string().optional().describe("Department name"),
-      Language: z.string().optional().describe("Language code"),
-      TimeZoneId: z.string().optional().describe("Time zone ID"),
+      id: z.number().describe("Numeric department Id (from list_departments)"),
+      Name: z.string().optional().describe("New department name"),
+      Language: z.string().optional().describe("Language code, e.g. 'de' or 'en'"),
+      TimeZoneId: z.string().optional().describe("Time zone, e.g. 'W. Europe Standard Time'"),
     },
     async ({ id, ...fields }) => {
       try {

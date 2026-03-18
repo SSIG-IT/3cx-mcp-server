@@ -5,7 +5,7 @@ import { z } from "zod";
 export function registerTrunkTools(server: McpServer, xapi: XapiClient) {
   server.tool(
     "list_trunks",
-    "Lists all configured SIP trunks on the 3CX system.",
+    "Returns all SIP trunks configured on the 3CX system. Each trunk has: Id, Number, Name, IsOnline (registration status), Direction, SimultaneousCalls. Use get_trunk_details with the Id for full configuration details.",
     {},
     async () => {
       try {
@@ -24,9 +24,9 @@ export function registerTrunkTools(server: McpServer, xapi: XapiClient) {
 
   server.tool(
     "get_trunk_details",
-    "Retrieves detailed information about a specific SIP trunk by its ID.",
+    "Returns full configuration of a specific SIP trunk including registration details, codecs, routes, and authentication. Get the trunk Id from list_trunks first.",
     {
-      id: z.number().describe("The trunk ID (get it from list_trunks)"),
+      id: z.number().describe("Trunk Id from list_trunks"),
     },
     async ({ id }) => {
       try {
