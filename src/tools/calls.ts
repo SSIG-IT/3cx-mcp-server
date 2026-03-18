@@ -3,45 +3,35 @@ import type { XapiClient } from "../api/xapi-client.js";
 import type { Config } from "../config.js";
 import { z } from "zod";
 
-type CallHistoryEntry = {
-  SegmentStartTime?: string;
-  SegmentEndTime?: string;
-  SrcDisplayName?: string;
-  SrcCallerNumber?: string;
-  DstDisplayName?: string;
-  DstCallerNumber?: string;
-  CallAnswered?: boolean;
+/**
+ * Call log entry from ReportCallLogData/Pbx.GetCallLogData (V20 U6+ CDR).
+ */
+type CallLogEntry = {
+  CdrId?: string;
+  CallId?: number;
+  StartTime?: string;
+  SourceDn?: string;
+  SourceCallerId?: string;
+  SourceDisplayName?: string;
+  DestinationDn?: string;
+  DestinationCallerId?: string;
+  DestinationDisplayName?: string;
+  ActionType?: number;
+  RingingDuration?: string;
+  TalkingDuration?: string;
+  Answered?: boolean;
+  Direction?: string;
+  CallType?: string;
+  Status?: string;
+  Reason?: string;
+  SegmentId?: number;
 };
 
-type CallHistoryResponse = {
-  value?: CallHistoryEntry[];
+type CallLogResponse = {
+  value?: CallLogEntry[];
 };
 
 type CallScope = "today" | "last_24_hours" | "all_recent";
-
-type RecentCallQuery = {
-  scope: CallScope;
-  top: number;
-  scanLimit: number;
-  extension?: string;
-  queue?: string;
-  missedOnly: boolean;
-  date?: string;
-  timezone: string;
-};
-
-function buildCallHistoryQuery(params: Record<string, string | number | undefined>): string {
-  const query = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) {
-      query.set(key, String(value));
-    }
-  }
-
-  const queryString = query.toString();
-  return queryString ? `?${queryString}` : "";
-}
 
 function getHostTimezone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -88,67 +78,97 @@ function matchesText(value: string | undefined, target: string): boolean {
   return value.toLowerCase().includes(target.toLowerCase());
 }
 
-function matchesExtension(entry: CallHistoryEntry, extension?: string): boolean {
+function matchesExtension(entry: CallLogEntry, extension?: string): boolean {
   if (!extension) return true;
 
   return (
-    matchesExactNumber(entry.SrcCallerNumber, extension) ||
-    matchesExactNumber(entry.DstCallerNumber, extension)
+    matchesExactNumber(entry.SourceDn, extension) ||
+    matchesExactNumber(entry.DestinationDn, extension) ||
+    matchesExactNumber(entry.SourceCallerId, extension) ||
+    matchesExactNumber(entry.DestinationCallerId, extension)
   );
 }
 
-function matchesQueue(entry: CallHistoryEntry, queue?: string): boolean {
+function matchesQueue(entry: CallLogEntry, queue?: string): boolean {
   if (!queue) return true;
 
-  return matchesExactNumber(entry.DstCallerNumber, queue) || matchesText(entry.DstDisplayName, queue);
+  return (
+    matchesExactNumber(entry.DestinationDn, queue) ||
+    matchesText(entry.DestinationDisplayName, queue)
+  );
 }
 
 /**
- * Build a server-side OData $filter for CallHistoryView.
- *
- * 3CX XAPI ignores $orderby on CallHistoryView — $skip/$top always operate
- * on the native (ascending / oldest-first) order. Without a $filter the first
- * page therefore returns the *oldest* records in the database, not the newest.
- *
- * The date() function syntax is the most reliable across 3CX V20 instances:
- *   $filter=date(SegmentStartTime) ge 2026-03-18
+ * Build the date range for the ReportCallLogData function call.
  */
-function buildDateFilter(scope: CallScope, date: string | undefined, timezone: string): string | undefined {
+function buildDateRange(scope: CallScope, date: string | undefined, timezone: string): { periodFrom: string; periodTo: string } {
   if (date) {
-    return `date(SegmentStartTime) eq ${date}`;
+    return {
+      periodFrom: `${date}T00:00:00Z`,
+      periodTo: `${date}T23:59:59Z`,
+    };
   }
 
   if (scope === "today") {
     const today = getLocalDateString(new Date(), timezone);
-    return `date(SegmentStartTime) eq ${today}`;
+    return {
+      periodFrom: `${today}T00:00:00Z`,
+      periodTo: `${today}T23:59:59Z`,
+    };
   }
 
   if (scope === "last_24_hours") {
-    const yesterday = getLocalDateString(new Date(Date.now() - 24 * 60 * 60 * 1000), timezone);
-    return `date(SegmentStartTime) ge ${yesterday}`;
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    return {
+      periodFrom: yesterday.toISOString().replace(/\.\d+Z$/, "Z"),
+      periodTo: now.toISOString().replace(/\.\d+Z$/, "Z"),
+    };
   }
 
-  // all_recent: last 7 days as a reasonable default
-  const weekAgo = getLocalDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), timezone);
-  return `date(SegmentStartTime) ge ${weekAgo}`;
+  // all_recent: last 7 days
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  return {
+    periodFrom: `${getLocalDateString(weekAgo, timezone)}T00:00:00Z`,
+    periodTo: `${getLocalDateString(now, timezone)}T23:59:59Z`,
+  };
 }
 
-async function getCallHistoryPage(
-  xapi: XapiClient,
-  params: {
-    top: number;
-    skip?: number;
-    filter?: string;
-  },
-): Promise<CallHistoryEntry[]> {
-  const query = buildCallHistoryQuery({
-    $top: params.top,
-    $skip: params.skip,
-    $filter: params.filter,
-  });
-  const result = (await xapi.get(`/CallHistoryView${query}`)) as CallHistoryResponse;
-  return result.value ?? [];
+/**
+ * Build the full ReportCallLogData/Pbx.GetCallLogData() OData function URL.
+ *
+ * This is the V20 U6+ endpoint that reads from the new cdr_output table.
+ * CallHistoryView only contains pre-U6 data on upgraded systems.
+ */
+function buildGetCallLogDataUrl(periodFrom: string, periodTo: string, top: number, skip: number): string {
+  const fnParams = [
+    `periodFrom=${periodFrom}`,
+    `periodTo=${periodTo}`,
+    `sourceType=0`,
+    `sourceFilter=''`,
+    `destinationType=0`,
+    `destinationFilter=''`,
+    `callsType=0`,
+    `callTimeFilterType=0`,
+    `callTimeFilterFrom='0:00:0'`,
+    `callTimeFilterTo='0:00:0'`,
+    `hidePcalls=true`,
+  ].join(",");
+
+  return `/ReportCallLogData/Pbx.GetCallLogData(${fnParams})?$top=${top}&$skip=${skip}`;
 }
+
+type RecentCallQuery = {
+  scope: CallScope;
+  top: number;
+  scanLimit: number;
+  extension?: string;
+  queue?: string;
+  missedOnly: boolean;
+  date?: string;
+  timezone: string;
+};
 
 async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promise<{
   meta: {
@@ -158,13 +178,13 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
     scanned: number;
     returned: number;
     timezone: string;
-    serverFilter: string | undefined;
+    endpoint: string;
     notes: string[];
   };
-  value: CallHistoryEntry[];
+  value: CallLogEntry[];
 }> {
-  const dateFilter = buildDateFilter(query.scope, query.date, query.timezone);
-  const collected: CallHistoryEntry[] = [];
+  const { periodFrom, periodTo } = buildDateRange(query.scope, query.date, query.timezone);
+  const collected: CallLogEntry[] = [];
   let scanned = 0;
   let skip = 0;
   let reachedEnd = false;
@@ -172,11 +192,9 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
   while (scanned < query.scanLimit && !reachedEnd) {
     const remaining = query.scanLimit - scanned;
     const pageSize = Math.min(100, remaining);
-    const page = await getCallHistoryPage(xapi, {
-      top: pageSize,
-      skip,
-      filter: dateFilter,
-    });
+    const url = buildGetCallLogDataUrl(periodFrom, periodTo, pageSize, skip);
+    const result = (await xapi.get(url)) as CallLogResponse;
+    const page = result.value ?? [];
 
     if (page.length === 0) {
       reachedEnd = true;
@@ -187,7 +205,7 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
     skip += page.length;
 
     for (const entry of page) {
-      if (query.missedOnly && entry.CallAnswered !== false) {
+      if (query.missedOnly && entry.Answered !== false) {
         continue;
       }
 
@@ -203,10 +221,10 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
     }
   }
 
-  // Sort client-side newest-first (3CX ignores $orderby on CallHistoryView)
+  // Sort client-side newest-first
   collected.sort((a, b) => {
-    const ta = parseTimestamp(a.SegmentStartTime)?.getTime() ?? 0;
-    const tb = parseTimestamp(b.SegmentStartTime)?.getTime() ?? 0;
+    const ta = parseTimestamp(a.StartTime)?.getTime() ?? 0;
+    const tb = parseTimestamp(b.StartTime)?.getTime() ?? 0;
     return tb - ta;
   });
 
@@ -223,10 +241,10 @@ async function queryRecentCalls(xapi: XapiClient, query: RecentCallQuery): Promi
       scanned,
       returned: result.length,
       timezone: query.timezone,
-      serverFilter: dateFilter,
+      endpoint: "ReportCallLogData/Pbx.GetCallLogData",
       notes: [
-        "Server-side $filter narrows the date range; results are sorted client-side (newest first).",
-        "3CX XAPI ignores $orderby on CallHistoryView, so $filter is required to get recent data.",
+        "Uses V20 U6+ ReportCallLogData endpoint (reads from cdr_output table).",
+        "Results are sorted client-side (newest first).",
         ...(reachedEnd
           ? ["All matching records in the time window were retrieved."]
           : [`Scan limit (${query.scanLimit}) reached. Increase scanLimit for exhaustive results on busy systems.`]),
@@ -260,9 +278,9 @@ export function registerCallTools(server: McpServer, xapi: XapiClient, config: C
 
   server.tool(
     "get_call_history",
-    "Use this for ANY question about past calls: 'show today's calls', 'missed calls today', 'recent calls for extension 101', 'calls to queue 802 yesterday'. Returns newest calls first. Each record: SegmentStartTime, SrcDisplayName, SrcCallerNumber, DstDisplayName, DstCallerNumber, CallAnswered (true/false), CallTime. Set missedOnly=true for missed/unanswered calls. Handles timezone-aware 'today' filtering automatically. Requires System Owner role.",
+    "Use this for ANY question about past calls: 'show today's calls', 'missed calls today', 'recent calls for extension 101', 'calls to queue 802 yesterday'. Returns newest calls first. Each record: StartTime, SourceDisplayName, SourceCallerId, DestinationDisplayName, DestinationCallerId, Answered (true/false), TalkingDuration, Direction, Status, Reason. Set missedOnly=true for missed/unanswered calls. Handles timezone-aware 'today' filtering automatically. Requires System Owner role.",
     {
-      scope: z.enum(["today", "last_24_hours", "all_recent"]).optional().default("today").describe("Time window: 'today' (default, server-filtered), 'last_24_hours' (server-filtered), or 'all_recent' (last 7 days)"),
+      scope: z.enum(["today", "last_24_hours", "all_recent"]).optional().default("today").describe("Time window: 'today' (default), 'last_24_hours', or 'all_recent' (last 7 days)"),
       missedOnly: z.boolean().optional().default(false).describe("Set true for missed/unanswered calls only"),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Explicit date in YYYY-MM-DD format, e.g. '2026-03-17' for yesterday"),
       timezone: z.string().optional().describe(`IANA timezone, e.g. 'Europe/Berlin'. Defaults to ${defaultTimezone}.`),
