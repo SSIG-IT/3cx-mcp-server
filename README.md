@@ -4,6 +4,8 @@
 
 <p align="center">
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Server-blue" alt="MCP Server"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7-blue" alt="TypeScript"></a>
+  <a href="https://github.com/SSIG-IT/3cx-mcp-server#available-tools-21"><img src="https://img.shields.io/badge/Tools-21-brightgreen" alt="Tools"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-20+-green" alt="Node.js"></a>
   <a href="https://www.3cx.com"><img src="https://img.shields.io/badge/3CX-V20+-orange" alt="3CX V20+"></a>
@@ -20,9 +22,17 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that c
 - **Forwarding Control** — view and change forwarding profiles per extension
 - **System Administration** — system status, trunks, departments, event logs
 
-> **Quick Start:** `git clone` → `npm install && npm run build` → configure `.env` → add to Claude Desktop config → done.
+The server authenticates via OAuth2 Client Credentials against the 3CX Configuration API (XAPI), manages token lifecycle automatically, and exposes 21 tools over MCP's stdio transport.
 
-**Contents:** [Prerequisites](#prerequisites) · [3CX API Setup](#3cx-api-setup) · [Installation](#installation) · [Configuration](#configuration) · [Usage](#usage) · [Tools](#available-tools-21) · [Troubleshooting](#troubleshooting) · [Deutsch](#deutsch--kurzanleitung)
+> **Quick Start**
+> ```bash
+> git clone https://github.com/SSIG-IT/3cx-mcp-server.git && cd 3cx-mcp-server
+> npm install && npm run build
+> cp .env.example .env  # edit with your 3CX credentials
+> npm start
+> ```
+
+**Contents:** [Prerequisites](#prerequisites) · [API Setup](#3cx-api-setup) · [Installation](#installation) · [Configuration](#configuration) · [Usage](#usage) · [Tools (21)](#available-tools-21) · [Troubleshooting](#troubleshooting) · [Deutsch](#deutsch--kurzanleitung)
 
 ## Prerequisites
 
@@ -53,6 +63,8 @@ Log in to your 3CX Web Client as **System Owner**. Click the **gear icon** (bott
 7. Click **Save**
 8. A popup shows the **API Secret** — **copy it immediately, it is only shown once!**
 9. Store the Client ID (e.g. `900`) and API Secret securely (e.g. in a password manager)
+
+<p align="right"><a href="#3cx-mcp-server">↑ back to top</a></p>
 
 ## Installation
 
@@ -106,6 +118,8 @@ curl -s -X POST "https://YOUR-FQDN/connect/token" \
 | `Connection refused` | Wrong port — try 443 or 5001 |
 | `Could not resolve host` | Wrong FQDN |
 
+<p align="right"><a href="#3cx-mcp-server">↑ back to top</a></p>
+
 ## Usage
 
 ### Claude Desktop
@@ -150,7 +164,7 @@ Add to your VS Code `settings.json`:
 }
 ```
 
-## Testing with MCP Inspector
+### Testing with MCP Inspector
 
 The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) lets you interactively test each tool. The `.env` file is loaded automatically:
 
@@ -162,16 +176,22 @@ npm run inspect
 npm run inspect:win
 ```
 
+<p align="right"><a href="#3cx-mcp-server">↑ back to top</a></p>
+
 ## Available Tools (21)
 
-### System
+<details>
+<summary><strong>System</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
 | `get_system_status` | Read | System status, version, license info, uptime |
 | `get_event_logs` | Read | System event logs with optional filter and paging |
 
-### Users & Extensions
+</details>
+
+<details>
+<summary><strong>Users & Extensions</strong> — 6 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
@@ -182,14 +202,20 @@ npm run inspect:win
 | `delete_user` | **Write** | Delete one or more users by ID array |
 | `get_extension_status` | Read | Extension registration status, current profile, queue status |
 
-### Forwarding
+</details>
+
+<details>
+<summary><strong>Forwarding</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
 | `get_forwarding_profiles` | Read | List all forwarding profiles and routing rules for an extension |
 | `set_forwarding_profile` | **Write** | Set active profile (Available, Away, Out of office, Custom 1, etc.) |
 
-### Departments
+</details>
+
+<details>
+<summary><strong>Departments</strong> — 3 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
@@ -197,35 +223,52 @@ npm run inspect:win
 | `create_department` | **Write** | Create a new department (Name, Language, TimeZoneId) |
 | `update_department` | **Write** | Update department fields by ID |
 
-### Trunks
+</details>
+
+<details>
+<summary><strong>Trunks</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
 | `list_trunks` | Read | List all configured SIP trunks |
 | `get_trunk_details` | Read | Detailed trunk info by ID (registration, routes, codecs) |
 
-### Calls & History
+</details>
+
+<details>
+<summary><strong>Calls & History</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
 | `get_active_calls` | Read | Currently active calls on the system |
 | `get_call_logs` | Read | Call history/CDR with filter and paging (requires System Owner) |
 
-### Queues
+</details>
+
+<details>
+<summary><strong>Queues</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
 | `list_queues` | Read | List all call queues (supports OData filter) |
 | `list_ring_groups` | Read | List all ring groups (supports OData filter) |
 
-### Contacts
+</details>
+
+<details>
+<summary><strong>Contacts</strong> — 2 tools</summary>
 
 | Tool | Type | Description |
 |------|------|-------------|
 | `list_contacts` | Read | List phonebook contacts with filter and paging |
 | `search_contacts` | Read | Search by name, company, or phone number |
 
-## Environment Variables
+</details>
+
+<p align="right"><a href="#3cx-mcp-server">↑ back to top</a></p>
+
+<details>
+<summary><strong>Environment Variables</strong></summary>
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -234,6 +277,8 @@ npm run inspect:win
 | `TCX_CLIENT_ID` | Yes | — | Numeric extension number from API setup (e.g. `900`) |
 | `TCX_CLIENT_SECRET` | Yes | — | API Secret from 3CX (shown once during setup) |
 | `MCP_LOG_LEVEL` | No | `info` | Log level (`debug`, `info`, `warn`, `error`) |
+
+</details>
 
 ## Troubleshooting
 
@@ -246,6 +291,8 @@ npm run inspect:win
 | **fetch failed** / ENOTFOUND | Wrong hostname | Verify `TCX_FQDN` is correct and reachable. Try opening `https://YOUR-FQDN` in a browser. |
 | **ECONNREFUSED** | Wrong port | Try the other port (443 vs 5001). See port table above. |
 
+<p align="right"><a href="#3cx-mcp-server">↑ back to top</a></p>
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
@@ -254,7 +301,8 @@ MIT — see [LICENSE](LICENSE)
 
 Issues and pull requests are welcome at [github.com/SSIG-IT/3cx-mcp-server](https://github.com/SSIG-IT/3cx-mcp-server).
 
-## Publishing & Distribution
+<details>
+<summary><strong>Publishing & Distribution</strong></summary>
 
 ### Official MCP Registry
 
@@ -277,6 +325,8 @@ mcp-publisher publish server.json
 
 Set the following topics on the GitHub repository for discoverability:
 `mcp`, `mcp-server`, `3cx`, `pbx`, `telephony`, `voip`, `claude`, `model-context-protocol`
+
+</details>
 
 ---
 
@@ -317,3 +367,9 @@ Ein MCP-Server, der Claude mit einer 3CX Telefonanlage (V20+) verbindet.
    Erwartete Antwort: JSON mit `access_token`.
 
 5. **In Claude einbinden:** MCP-Server in `claude_desktop_config.json` oder VS Code `settings.json` eintragen (siehe Beispiele oben)
+
+---
+
+<p align="center">
+  Made with MCP by <a href="https://ssig-it.com">SSIG-IT GmbH</a> · Blaubeuren, Germany
+</p>
