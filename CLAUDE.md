@@ -17,6 +17,15 @@ Ein MCP-Server (Model Context Protocol) in TypeScript, der Claude mit einer 3CX 
 ## Auth
 OAuth2 Client Credentials: POST /connect/token mit client_id + client_secret → Bearer Token (60 Min)
 
+## Wichtig: Rollen & Berechtigungen
+- Dienstprinzipal braucht Rolle **Systemeigentümer** (System Owner), nicht nur Systemadministrator
+- Systemadministrator reicht für: Users, Groups, Trunks, ActiveCalls, SystemStatus, EventLogs
+- Systemeigentümer nötig für: CallHistoryView, ChatHistoryView, Recordings, ScheduledReports (sonst 403)
+
+## Ports
+- Gehostete Instanzen (*.my3cx.de): Port 443 (Standard-HTTPS)
+- Selbst-gehostete Instanzen: typischerweise Port 5001
+
 ## Projektstruktur
 src/index.ts — Entry, MCP Server Setup
 src/config.ts — Env-Validierung mit Zod
