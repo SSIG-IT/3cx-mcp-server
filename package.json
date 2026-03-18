@@ -11,7 +11,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node build/index.js",
-    "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
+    "inspect": "dotenv -e .env -- npx @modelcontextprotocol/inspector node build/index.js",
+    "inspect:win": "powershell -ExecutionPolicy Bypass -File scripts/inspect.ps1",
     "lint": "eslint src/",
     "format": "prettier --write src/"
   },
@@ -21,11 +22,19 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "dotenv-cli": "^11.0.0",
     "typescript": "^5.7.0"
   },
   "engines": {
     "node": ">=20.0.0"
   },
-  "keywords": ["mcp", "3cx", "pbx", "telephony", "voip", "claude"],
+  "keywords": [
+    "mcp",
+    "3cx",
+    "pbx",
+    "telephony",
+    "voip",
+    "claude"
+  ],
   "license": "MIT"
 }
