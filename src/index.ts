@@ -14,6 +14,7 @@ import { registerQueueTools } from "./tools/queues.js";
 import { registerContactTools } from "./tools/contacts.js";
 import { registerExtensionTools } from "./tools/extensions.js";
 import { registerLogTools } from "./tools/logs.js";
+import { registerForwardingTools } from "./tools/forwarding.js";
 
 const server = new McpServer({
   name: "3cx-mcp-server",
@@ -33,6 +34,7 @@ registerQueueTools(server, xapi);
 registerContactTools(server, xapi);
 registerExtensionTools(server, xapi);
 registerLogTools(server, xapi);
+registerForwardingTools(server, xapi);
 
 // Start server
 async function main() {

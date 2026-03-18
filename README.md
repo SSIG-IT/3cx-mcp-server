@@ -100,9 +100,15 @@ This launches the [MCP Inspector](https://github.com/modelcontextprotocol/inspec
 |------|-------------|
 | `get_system_status` | Retrieves 3CX system status (version, license, uptime) |
 | `list_users` | Lists all users with optional OData filter and paging |
-| `get_user` | Retrieves a single user by numeric ID or extension number |
+| `get_user` | Retrieves a single user by extension number |
+| `create_user` | **[WRITE]** Creates a new user/extension |
+| `update_user` | **[WRITE]** Updates user fields (name, email, enabled, etc.) |
+| `delete_user` | **[WRITE]** Deletes one or more users by ID |
 | `list_departments` | Lists all departments/groups with optional filter |
+| `create_department` | **[WRITE]** Creates a new department |
+| `update_department` | **[WRITE]** Updates department fields |
 | `list_trunks` | Lists all configured SIP trunks |
+| `get_trunk_details` | Retrieves detailed info for a specific trunk |
 | `get_active_calls` | Retrieves currently active calls |
 | `get_call_logs` | Retrieves call history (CDR) with optional filter (requires System Owner role) |
 | `list_queues` | Lists all call queues with optional filter |
@@ -110,6 +116,8 @@ This launches the [MCP Inspector](https://github.com/modelcontextprotocol/inspec
 | `list_contacts` | Lists phonebook contacts with optional filter and paging |
 | `search_contacts` | Searches phonebook by name, company, or phone number |
 | `get_extension_status` | Retrieves extension status (registered, profile, queue status) |
+| `get_forwarding_profiles` | Retrieves forwarding profiles and routing rules for an extension |
+| `set_forwarding_profile` | **[WRITE]** Sets active forwarding profile (Available, Away, DND, etc.) |
 | `get_event_logs` | Retrieves system event logs with optional filter |
 
 ## Environment Variables
