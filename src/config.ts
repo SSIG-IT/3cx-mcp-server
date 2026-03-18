@@ -3,6 +3,7 @@ import { z } from "zod";
 export const configSchema = z.object({
   TCX_FQDN: z.string().min(1),
   TCX_PORT: z.string().default("443"),
+  TCX_TIMEZONE: z.string().optional(),
   TCX_CLIENT_ID: z.string().min(1),
   TCX_CLIENT_SECRET: z.string().min(1),
   TCX_WEBAPI_KEY: z.string().optional(),

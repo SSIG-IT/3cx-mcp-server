@@ -77,6 +77,7 @@ Edit `.env` with your values:
 ```env
 TCX_FQDN=your-company.my3cx.de
 TCX_PORT=443
+TCX_TIMEZONE=Europe/Berlin
 TCX_CLIENT_ID=900
 TCX_CLIENT_SECRET=your_api_secret_here
 ```
@@ -87,6 +88,8 @@ TCX_CLIENT_SECRET=your_api_secret_here
 | Self-hosted (Linux/Windows) | `pbx.company.com` | **5001** |
 
 If unsure, try port 443 first. If you get "Connection refused", switch to 5001.
+
+For call-history queries like "missed calls today", set `TCX_TIMEZONE` to your business/PBX timezone. Otherwise, `today` falls back to the MCP host timezone, which may be `UTC` on remote hosts.
 
 ## Usage
 
@@ -187,6 +190,7 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 Call-history guidance for MCP clients and AI agents:
 
 - Use `get_recent_calls` or `get_recent_missed_calls` for user-facing questions like "calls today", "missed calls today", or "recent calls for extension 101".
+- For calendar-day queries, set `TCX_TIMEZONE` on the server or pass `timezone` explicitly (for example `Europe/Berlin`). You can also pass `date` in `YYYY-MM-DD` format for an exact local day.
 - Use `get_call_logs` only when you explicitly need raw OData control (`$filter`, `$orderby`, `$skip`, `$top`).
 - Avoid server-side date filters on `CallHistoryView` because some 3CX systems return `500 Internal Server Error` for `SegmentStartTime` comparisons.
 

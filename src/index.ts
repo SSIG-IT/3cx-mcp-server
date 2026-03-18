@@ -29,7 +29,7 @@ registerSystemTools(server, xapi);
 registerUserTools(server, xapi);
 registerDepartmentTools(server, xapi);
 registerTrunkTools(server, xapi);
-registerCallTools(server, xapi);
+registerCallTools(server, xapi, config);
 registerQueueTools(server, xapi);
 registerContactTools(server, xapi);
 registerExtensionTools(server, xapi);
