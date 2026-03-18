@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Server-blue" alt="MCP Server"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.7-blue" alt="TypeScript"></a>
-  <a href="https://github.com/SSIG-IT/3cx-mcp-server#available-tools-28"><img src="https://img.shields.io/badge/Tools-28-brightgreen" alt="Tools"></a>
+  <a href="https://github.com/SSIG-IT/3cx-mcp-server#available-tools-29"><img src="https://img.shields.io/badge/Tools-29-brightgreen" alt="Tools"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-20+-green" alt="Node.js"></a>
   <a href="https://www.3cx.com"><img src="https://img.shields.io/badge/3CX-V20+-orange" alt="3CX V20+"></a>
@@ -22,7 +22,7 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that c
 - **Forwarding Control** — view and change forwarding profiles per extension
 - **System Administration** — system status, trunks, departments, event logs
 
-The server authenticates via OAuth2 Client Credentials against the 3CX Configuration API (XAPI), manages token lifecycle automatically, and exposes 28 tools over MCP's stdio transport.
+The server authenticates via OAuth2 Client Credentials against the 3CX Configuration API (XAPI), manages token lifecycle automatically, and exposes 29 tools over MCP's stdio transport.
 
 > **Quick Start**
 > ```bash
@@ -32,7 +32,7 @@ The server authenticates via OAuth2 Client Credentials against the 3CX Configura
 > npm start
 > ```
 
-**Contents:** [Prerequisites](#prerequisites) · [API Setup](#3cx-api-setup) · [Installation](#installation) · [Configuration](#configuration) · [Usage](#usage) · [Tools (28)](#available-tools-28) · [Troubleshooting](#troubleshooting) · [Deutsch](#deutsch)
+**Contents:** [Prerequisites](#prerequisites) · [API Setup](#3cx-api-setup) · [Installation](#installation) · [Configuration](#configuration) · [Usage](#usage) · [Tools (29)](#available-tools-29) · [Troubleshooting](#troubleshooting) · [Deutsch](#deutsch)
 
 ## Prerequisites
 
@@ -150,7 +150,16 @@ or:
 
 Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `npm run inspect` (macOS/Linux) or `npm run inspect:win` (Windows). The `.env` file is loaded automatically.
 
-## Available Tools (28)
+## Available Tools (29)
+
+<details>
+<summary><strong>AI Routing</strong> — 1 tool</summary>
+
+| Tool | Type | Description |
+|------|------|-------------|
+| `plan_3cx_request` | Read | Natural-language router that recommends the right 3CX tool and arguments for a user's request |
+
+</details>
 
 <details>
 <summary><strong>System</strong> — 2 tools</summary>
@@ -253,6 +262,7 @@ Call-history guidance for MCP clients and AI agents:
 
 The recommended pattern for MCP clients and AI agents is:
 
+- If the user request is plain natural language and the correct tool is not obvious, call `plan_3cx_request` first.
 - Prefer intent-based tools first: `find_users`, `get_online_users`, `get_recent_calls`, `get_recent_missed_calls`, `find_queues`, `get_queue_agents`, `search_contacts`, and `find_contact_by_phone`.
 - Use raw list-style tools (`list_users`, `list_queues`, `list_contacts`, `get_call_logs`) only when you explicitly need OData control, paging, or broad exports.
 - Let the MCP server handle product quirks such as 3CX call-history sorting and fragile date filters instead of trying to reconstruct them in the model prompt.

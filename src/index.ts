@@ -15,6 +15,7 @@ import { registerContactTools } from "./tools/contacts.js";
 import { registerExtensionTools } from "./tools/extensions.js";
 import { registerLogTools } from "./tools/logs.js";
 import { registerForwardingTools } from "./tools/forwarding.js";
+import { registerRouterTools } from "./tools/router.js";
 
 const server = new McpServer({
   name: "3cx-mcp-server",
@@ -25,6 +26,7 @@ const tokenManager = new TokenManager(config);
 const xapi = new XapiClient(config, tokenManager);
 
 // Register all tools
+registerRouterTools(server, config);
 registerSystemTools(server, xapi);
 registerUserTools(server, xapi);
 registerDepartmentTools(server, xapi);
