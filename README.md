@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/header.svg" alt="3CX MCP Server" width="800">
+  <img src="assets/header.png" alt="3CX MCP Server" width="800">
 </p>
 
 <p align="center">
