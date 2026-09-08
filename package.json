@@ -1,6 +1,6 @@
 {
   "name": "3cx-mcp-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP Server for 3CX Phone System — manage users, extensions, calls, queues and more via Claude",
   "type": "module",
   "main": "build/index.js",
@@ -12,6 +12,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node build/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "inspect": "dotenv -e .env -- npx @modelcontextprotocol/inspector node build/index.js",
     "inspect:win": "powershell -ExecutionPolicy Bypass -File scripts/inspect.ps1",
     "lint": "eslint src/",
@@ -24,7 +26,8 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "dotenv-cli": "^11.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=20.0.0"

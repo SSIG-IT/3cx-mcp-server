@@ -1,24 +1,25 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { XapiClient } from "../api/xapi-client.js";
 import { z } from "zod";
+import { buildQuery } from "../lib/odata.js";
 import { formatListResponse, formatSingleResponse, toMcpText } from "../lib/response-formatter.js";
 
 export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
-  server.tool(
+  server.registerTool(
     "list_departments",
-    "Returns all 3CX departments (called 'Groups' in the API). Each department has: Id, Name, Number, Language, TimeZoneId, Members. The Id is needed for update_department. Filter examples: \"Name eq 'Sales'\", \"Name eq 'DEFAULT'\".",
     {
-      filter: z.string().optional().describe("OData $filter, e.g. \"Name eq 'Sales'\""),
+      title: "List Departments",
+      description:
+        "Returns all 3CX departments (called 'Groups' in the API). Each department has: Id, Name, Number, Language, TimeZoneId, Members. The Id is needed for update_department. Filter examples: \"Name eq 'Sales'\", \"Name eq 'DEFAULT'\".",
+      inputSchema: {
+        filter: z.string().optional().describe("OData $filter, e.g. \"Name eq 'Sales'\""),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ filter }) => {
       try {
-        const params = new URLSearchParams();
-        if (filter) params.set("$filter", filter);
-        const query = params.toString() ? `?${params}` : "";
-        const result = await xapi.get(`/Groups${query}`);
-        return {
-          content: [{ type: "text", text: toMcpText(formatListResponse(result, "department")) }],
-        };
+        const result = await xapi.get(`/Groups${buildQuery({ $filter: filter })}`);
+        return { content: [{ type: "text", text: toMcpText(formatListResponse(result, "department")) }] };
       } catch (err) {
         return {
           content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
@@ -28,13 +29,18 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
     },
   );
 
-  server.tool(
+  server.registerTool(
     "create_department",
-    "[DESTRUCTIVE] Creates a new department (group) in 3CX. Returns the created department with its assigned Id.",
     {
-      Name: z.string().describe("Department name, e.g. 'Sales' or 'IT Support'"),
-      Language: z.string().optional().describe("Language code, e.g. 'de' or 'en'"),
-      TimeZoneId: z.string().optional().describe("Time zone, e.g. 'W. Europe Standard Time'"),
+      title: "Create Department",
+      description:
+        "[DESTRUCTIVE] Creates a new department (group) in 3CX. Returns the created department with its assigned Id.",
+      inputSchema: {
+        Name: z.string().describe("Department name, e.g. 'Sales' or 'IT Support'"),
+        Language: z.string().optional().describe("Language code, e.g. 'de' or 'en'"),
+        TimeZoneId: z.string().optional().describe("Time zone, e.g. 'W. Europe Standard Time'"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     async (params) => {
       try {
@@ -43,10 +49,12 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
         if (params.TimeZoneId) body.TimeZoneId = params.TimeZoneId;
         const result = await xapi.post("/Groups", body);
         return {
-          content: [{
-            type: "text",
-            text: `Department created successfully:\n${toMcpText(formatSingleResponse(result, "department"))}`,
-          }],
+          content: [
+            {
+              type: "text",
+              text: `Department created successfully:\n${toMcpText(formatSingleResponse(result, "department"))}`,
+            },
+          ],
         };
       } catch (err) {
         return {
@@ -57,14 +65,19 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
     },
   );
 
-  server.tool(
+  server.registerTool(
     "update_department",
-    "[DESTRUCTIVE] Updates a 3CX department by its numeric Id. Get the Id from list_departments first. Only provided fields are changed.",
     {
-      id: z.number().describe("Numeric department Id (from list_departments)"),
-      Name: z.string().optional().describe("New department name"),
-      Language: z.string().optional().describe("Language code, e.g. 'de' or 'en'"),
-      TimeZoneId: z.string().optional().describe("Time zone, e.g. 'W. Europe Standard Time'"),
+      title: "Update Department",
+      description:
+        "[DESTRUCTIVE] Updates a 3CX department by its numeric Id. Get the Id from list_departments first. Only provided fields are changed.",
+      inputSchema: {
+        id: z.number().describe("Numeric department Id (from list_departments)"),
+        Name: z.string().optional().describe("New department name"),
+        Language: z.string().optional().describe("Language code, e.g. 'de' or 'en'"),
+        TimeZoneId: z.string().optional().describe("Time zone, e.g. 'W. Europe Standard Time'"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     },
     async ({ id, ...fields }) => {
       try {
@@ -81,10 +94,12 @@ export function registerDepartmentTools(server: McpServer, xapi: XapiClient) {
         await xapi.patch(`/Groups(${id})`, body);
         const updated = await xapi.get(`/Groups(${id})`);
         return {
-          content: [{
-            type: "text",
-            text: `Department ${id} updated successfully:\n${toMcpText(formatSingleResponse(updated, "department"))}`,
-          }],
+          content: [
+            {
+              type: "text",
+              text: `Department ${id} updated successfully:\n${toMcpText(formatSingleResponse(updated, "department"))}`,
+            },
+          ],
         };
       } catch (err) {
         return {

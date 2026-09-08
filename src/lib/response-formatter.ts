@@ -31,6 +31,7 @@ const SUMMARY_FIELDS: Record<EntityType, string[]> = {
     "StartTime", "SourceDisplayName", "SourceCallerId",
     "DestinationDisplayName", "DestinationCallerId",
     "Answered", "TalkingDuration", "Direction", "Status", "Reason",
+    "MainCallHistoryId",
   ],
   active_call: [
     "Id", "Caller", "Callee", "Status", "Duration",
@@ -60,7 +61,7 @@ const SUMMARY_FIELDS: Record<EntityType, string[]> = {
   ],
 };
 
-function pickFields(
+export function pickFields(
   item: Record<string, unknown>,
   entityType: EntityType,
 ): Record<string, unknown> {
@@ -86,11 +87,13 @@ export interface FormattedResponse {
 
 /**
  * Format an OData response (with .value array) into a compact response.
+ * If a total is available (via options.count or @odata.count), hasMore is exact;
+ * otherwise it falls back to a top-based heuristic.
  */
 export function formatListResponse(
   data: unknown,
   entityType: EntityType,
-  options?: { top?: number; skip?: number },
+  options?: { top?: number; skip?: number; count?: number },
 ): FormattedResponse {
   const obj = data as Record<string, unknown>;
   const items = (obj?.value ?? obj) as Record<string, unknown>[];
@@ -99,12 +102,24 @@ export function formatListResponse(
   }
 
   const compactItems = items.map((item) => pickFields(item, entityType));
-  const top = options?.top;
-  const hasMore = top !== undefined && items.length >= top;
+  const returned = compactItems.length;
+
+  const odataCount = obj?.["@odata.count"];
+  const total =
+    options?.count ?? (typeof odataCount === "number" ? odataCount : undefined);
+  const skip = options?.skip ?? 0;
+
+  let hasMore: boolean | undefined;
+  if (total !== undefined) {
+    hasMore = skip + returned < total;
+  } else if (options?.top !== undefined) {
+    hasMore = returned >= options.top;
+  }
 
   return {
     summary: {
-      returned: compactItems.length,
+      returned,
+      ...(total !== undefined && { total }),
       ...(hasMore !== undefined && { hasMore }),
       ...(hasMore && { hint: "Increase 'top' or use 'skip' for more results." }),
     },
