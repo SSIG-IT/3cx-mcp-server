@@ -1,6 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { XapiClient } from "../api/xapi-client.js";
 import { z } from "zod";
+import { buildQuery } from "../lib/odata.js";
+import { formatListResponse, toMcpText } from "../lib/response-formatter.js";
 
 type QueueAgent = Record<string, unknown>;
 
@@ -61,10 +63,7 @@ function isLoggedInAgent(agent: QueueAgent): boolean {
   ];
 
   for (const value of candidateValues) {
-    if (typeof value === "boolean") {
-      return value;
-    }
-
+    if (typeof value === "boolean") return value;
     if (typeof value === "string") {
       const normalized = value.toLowerCase();
       if (normalized.includes("loggedin") || normalized.includes("logged in") || normalized.includes("available")) {
@@ -80,28 +79,27 @@ function isLoggedInAgent(agent: QueueAgent): boolean {
 }
 
 export function registerQueueTools(server: McpServer, xapi: XapiClient) {
-  server.tool(
+  server.registerTool(
     "find_queues",
-    "Use this when the user asks about call queues: 'show all queues', 'find support queue', 'which queue is 802?'. Searches by queue number or name with fuzzy matching. Returns: Id, Number, Name, IsRegistered, PollingStrategy, Agents (with login status), RingTimeout, MaxWaitTime. Use get_queue_agents for detailed agent info on a specific queue.",
     {
-      query: z.string().describe("Queue number or queue name to search for."),
-      top: z.number().optional().default(10).describe("Maximum number of matching queues to return."),
+      title: "Find Queues",
+      description:
+        "Use this when the user asks about call queues: 'show all queues', 'find support queue', 'which queue is 802?'. Searches by queue number or name with fuzzy matching. Returns: Id, Number, Name, IsRegistered, PollingStrategy, Agents (with login status), RingTimeout, MaxWaitTime. Use get_queue_agents for detailed agent info on a specific queue.",
+      inputSchema: {
+        query: z.string().describe("Queue number or queue name to search for."),
+        top: z.number().optional().default(10).describe("Maximum number of matching queues to return."),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ query, top }) => {
       try {
         const queues = await getAllQueues(xapi);
         const matches = findMatchingQueues(queues, query).slice(0, top);
         const result = {
-          meta: {
-            query,
-            returned: matches.length,
-            filteredLocally: true,
-          },
+          meta: { query, returned: matches.length, filteredLocally: true },
           value: matches,
         };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       } catch (err) {
         return {
           content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
@@ -111,12 +109,21 @@ export function registerQueueTools(server: McpServer, xapi: XapiClient) {
     },
   );
 
-  server.tool(
+  server.registerTool(
     "get_queue_agents",
-    "Use this when the user asks 'who is in queue X?', 'which agents are logged into 802?', or 'who is working the support queue?'. Resolves the queue by number or name, then returns its agents with login status. Set loggedInOnly=true to show only currently logged-in agents.",
     {
-      queue: z.string().describe("Queue number or queue name, e.g. '802' or 'Support'."),
-      loggedInOnly: z.boolean().optional().default(false).describe("If true, only agents that appear logged in are returned."),
+      title: "Get Queue Agents",
+      description:
+        "Use this when the user asks 'who is in queue X?', 'which agents are logged into 802?', or 'who is working the support queue?'. Resolves the queue by number or name, then returns its agents with login status. Set loggedInOnly=true to show only currently logged-in agents.",
+      inputSchema: {
+        queue: z.string().describe("Queue number or queue name, e.g. '802' or 'Support'."),
+        loggedInOnly: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe("If true, only agents that appear logged in are returned."),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ queue, loggedInOnly }) => {
       try {
@@ -135,10 +142,12 @@ export function registerQueueTools(server: McpServer, xapi: XapiClient) {
 
         if (bestMatches.length > 1 && bestScore !== 0 && bestScore !== 1) {
           return {
-            content: [{
-              type: "text",
-              text: `Multiple queues matched '${queue}'. Use a more specific queue number or name.\n${JSON.stringify(bestMatches, null, 2)}`,
-            }],
+            content: [
+              {
+                type: "text",
+                text: `Multiple queues matched '${queue}'. Use a more specific queue number or name.\n${JSON.stringify(bestMatches, null, 2)}`,
+              },
+            ],
             isError: true,
           };
         }
@@ -163,9 +172,7 @@ export function registerQueueTools(server: McpServer, xapi: XapiClient) {
           },
           agents,
         };
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       } catch (err) {
         return {
           content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
@@ -175,21 +182,21 @@ export function registerQueueTools(server: McpServer, xapi: XapiClient) {
     },
   );
 
-  server.tool(
+  server.registerTool(
     "list_ring_groups",
-    "Use this when the user asks about ring groups (not queues). Ring groups ring multiple extensions simultaneously or in sequence. Returns: Id, Number, Name, Members, RingStrategy.",
     {
-      filter: z.string().optional().describe("OData $filter, e.g. \"Name eq 'Sales'\""),
+      title: "List Ring Groups",
+      description:
+        "Use this when the user asks about ring groups (not queues). Ring groups ring multiple extensions simultaneously or in sequence. Returns: Id, Number, Name, RingStrategy.",
+      inputSchema: {
+        filter: z.string().optional().describe("OData $filter, e.g. \"Name eq 'Sales'\""),
+      },
+      annotations: { readOnlyHint: true },
     },
     async ({ filter }) => {
       try {
-        const params = new URLSearchParams();
-        if (filter) params.set("$filter", filter);
-        const query = params.toString() ? `?${params}` : "";
-        const result = await xapi.get(`/RingGroups${query}`);
-        return {
-          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-        };
+        const result = await xapi.get(`/RingGroups${buildQuery({ $filter: filter })}`);
+        return { content: [{ type: "text", text: toMcpText(formatListResponse(result, "ring_group")) }] };
       } catch (err) {
         return {
           content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],

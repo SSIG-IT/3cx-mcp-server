@@ -142,19 +142,29 @@ Run the server as a remote HTTP endpoint (without MetaMCP):
 ```env
 MCP_TRANSPORT=http
 MCP_HTTP_PORT=8080
+MCP_HTTP_HOST=127.0.0.1
+# MCP_ALLOWED_HOSTS=mcphub.internal:8080
 ```
 
 ```bash
 npm run build && npm start
-# Server listens on http://0.0.0.0:8080/mcp
-# Health check: http://0.0.0.0:8080/health
+# Server listens on http://127.0.0.1:8080/mcp
+# Health check: http://127.0.0.1:8080/health
 ```
+
+> **Security:** the HTTP transport has **no built-in authentication** and binds to
+> loopback (`127.0.0.1`) by default. It is meant to run behind an authenticating
+> proxy (e.g. mcphub OAuth). DNS-rebinding protection is enabled; if your proxy
+> forwards a `Host` header other than loopback, add it to `MCP_ALLOWED_HOSTS`
+> (comma-separated). **Never** bind to `0.0.0.0` without an auth proxy — the server
+> holds 3CX admin credentials and exposes write tools.
 
 Deploy behind a reverse proxy (nginx/Cloudflare) with HTTPS for production use.
 
 ### Testing
 
-Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `npm run inspect` (macOS/Linux) or `npm run inspect:win` (Windows). The `.env` file is loaded automatically.
+- **Unit tests:** `npm test` (Vitest — OData escaping, timezone/day-range math, call grouping, response formatting).
+- **MCP Inspector:** `npm run inspect` (macOS/Linux) or `npm run inspect:win` (Windows). The `.env` file is loaded automatically.
 
 ## Available Tools (22)
 
@@ -174,7 +184,7 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 | Tool | Type | Description |
 |------|------|-------------|
 | `find_users` | Read | Search users by name, extension, email, or mobile. Set `onlyRegistered=true` for online users |
-| `get_user` | Read | Full details of one user by extension number (returns Id needed for update/delete) |
+| `get_user` | Read | Full details of one user by extension number (returns Id needed for update/delete; passwords/PIN are redacted) |
 | `get_extension_status` | Read | Quick status: is registered? current profile? queue status? |
 | `create_user` | **Write** | Create a new extension |
 | `update_user` | **Write** | Update user fields by Id |
@@ -219,7 +229,7 @@ Test with [MCP Inspector](https://github.com/modelcontextprotocol/inspector): `n
 | Tool | Type | Description |
 |------|------|-------------|
 | `get_active_calls` | Read | Currently live calls |
-| `get_call_history` | Read | Call history (V20 U6+ ReportCallLogData) with scope (today/last_24h/all), missedOnly filter, extension/queue filter. Timezone-aware. |
+| `get_call_history` | Read | Call history (V20 U6+ ReportCallLogData), newest-first, grouped into one row per call. Scope (today/last_24h/all), `missedOnly` (no segment answered), extension/queue filter. Timezone-correct (UTC-mapped). 3CX caps reports at 20 000 rows — narrow the window for busy periods. |
 
 </details>
 
